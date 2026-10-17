@@ -72,22 +72,35 @@ Since there's no build step, deployment is just publishing the repo's static fil
 A native television application for Android TV & Google TV located in [`android-tv/`](android-tv/):
 
 - **10-foot remote experience**: Complete navigation with directional D-pad, OK, Back, and Media buttons.
-- **Ported recommendation engine**: Full 29-mood engine with genre verification and ranked candidate results.
-- **TV-tailored playback**: Multi-tier playback engine featuring AndroidX Media3 (ExoPlayer), hardware-accelerated TV WebView player, and external player intent handoff.
-- **Complete documentation**:
+- **Ported recommendation engine**: Full 29-mood engine with real genre verification and composite score ranking.
+- **Mandatory Native Playback**: 100% native AndroidX Media3 (ExoPlayer) for HLS, DASH, and MP4 streams with zero third-party WebViews in playback.
+- **Media Source Resolution & Validation**: Dedicated resolver classifying streams (`NATIVE_STREAM` vs `UNSUPPORTED_WEB_EMBED`), enforcing HTTPS, and isolating redirect chains (max 5 hops).
+- **Native Brave-Inspired Privacy Shields**: Network request domain filtering against Adblock Plus / EasyPrivacy rulesets, live metrics, and television settings screen.
+- **Launcher Integration**: Declares `LEANBACK_LAUNCHER` with 320x180 high-res TV banner and seamless discovery on Google TV, Android TV, and Nook TV launcher.
+- **Complete documentation suite**:
   - [Android TV PRD](docs/ANDROID_TV_PRD.md)
   - [System Architecture](docs/ARCHITECTURE.md)
   - [Remote Navigation & Focus](docs/REMOTE_NAVIGATION.md)
+  - [Privacy & Network Isolation](docs/PRIVACY_AND_BLOCKING.md)
   - [Playback Compatibility](docs/PLAYBACK_COMPATIBILITY.md)
   - [QA Test Plan](docs/QA_TEST_PLAN.md)
   - [Installation & Sideloading](docs/INSTALLATION.md)
   - [Release Checklist](docs/RELEASE_CHECKLIST.md)
 
-### Building the Android TV APK
+### Building the Android TV Application
 ```bash
 cd android-tv
+
+# Run unit test suite (33 tests across 7 suites)
+./gradlew testDebugUnitTest
+
+# Assemble Debug APK (development & testing)
 ./gradlew assembleDebug
-# APK is generated at: android-tv/app/build/outputs/apk/debug/app-debug.apk
+# Generated at: android-tv/app/build/outputs/apk/debug/app-debug.apk
+
+# Assemble Signed Release APK (production & sideloading)
+./gradlew assembleRelease
+# Generated at: android-tv/app/build/outputs/apk/release/app-release.apk
 ```
 
 ---

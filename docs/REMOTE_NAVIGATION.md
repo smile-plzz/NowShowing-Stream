@@ -6,12 +6,12 @@ NowShowing TV is built from the ground up to be 100% operable with standard Andr
 
 | Remote Key | Android KeyCode | Primary Action | Screen Context |
 |------------|-----------------|----------------|----------------|
-| **D-pad Up** | `KEYCODE_DPAD_UP` | Move focus up | Moves between carousels, inputs, or header tabs |
-| **D-pad Down** | `KEYCODE_DPAD_DOWN` | Move focus down | Moves down to next carousel row or list item |
-| **D-pad Left** | `KEYCODE_DPAD_LEFT` | Move focus left / Previous item | Navigates backwards along horizontal carousels |
-| **D-pad Right** | `KEYCODE_DPAD_RIGHT` | Move focus right / Next item | Navigates forward along horizontal carousels |
-| **Center / OK** | `KEYCODE_DPAD_CENTER` / `KEYCODE_ENTER` | Select / Activate | Opens detail screen, triggers search, switches source |
-| **Back** | `KEYCODE_BACK` | Back / Exit / Dismiss | Closes modal/player, returns to previous screen with focus intact |
+| **D-pad Up** | `KEYCODE_DPAD_UP` | Move focus up / Show HUD | Moves between carousels, inputs, or header tabs; reveals player HUD |
+| **D-pad Down** | `KEYCODE_DPAD_DOWN` | Move focus down / Show HUD | Moves down to next carousel row or list item; reveals player HUD |
+| **D-pad Left** | `KEYCODE_DPAD_LEFT` | Move focus left / Seek -10s | Navigates backwards along carousels; seeks -10s in Player |
+| **D-pad Right** | `KEYCODE_DPAD_RIGHT` | Move focus right / Seek +10s | Navigates forward along carousels; seeks +10s in Player |
+| **Center / OK** | `KEYCODE_DPAD_CENTER` / `KEYCODE_ENTER` | Select / Activate / Play-Pause | Opens details, triggers search, plays/pauses media, confirms next episode |
+| **Back** | `KEYCODE_BACK` | Back / Exit / Dismiss | Closes player/drawer/modal, returns to previous screen with focus intact |
 | **Play / Pause** | `KEYCODE_MEDIA_PLAY_PAUSE` | Toggle playback | Directly toggles video playback in player view |
 | **Fast Forward** | `KEYCODE_MEDIA_FAST_FORWARD` | Seek forward | Seeks +10s in Media3 player |
 | **Rewind** | `KEYCODE_MEDIA_REWIND` | Seek backward | Seeks -10s in Media3 player |
@@ -30,7 +30,7 @@ To prevent user disorientation from 10 feet away:
 ## 3. Screen-by-Screen Navigation Flows
 
 ### 3.1. Home Screen
-- **Top Bar**: Search icon, Movies tab, TV Shows tab, Moods tab, Watchlist tab.
+- **Top Bar**: Search icon, Movies tab, TV Shows tab, Moods tab, Watchlist tab, Settings tab.
   - Pressing `Down` from Top Bar drops focus into Hero or the first carousel item.
 - **Hero Banner**:
   - Focusable "Play" and "More Info" buttons.
@@ -39,16 +39,19 @@ To prevent user disorientation from 10 feet away:
   - Scrolling is horizontal (`Left`/`Right`).
   - Pressing `Down` moves focus to the vertically aligned card in the row below, maintaining horizontal scroll offset.
   - Pressing `Up` moves focus back to the row above.
-  - When the first card in a row is focused, pressing `Left` stops smoothly (no wrap-around unless reaching the sidebar).
+  - When the first card in a row is focused, pressing `Left` stops smoothly without erratic jumps.
 
 ### 3.2. Title Details Screen
-- **Action Row**: "Play / Resume", "Watchlist" (Add/Remove), "Sources" (Modal trigger).
+- **Action Row**: "Play / Resume", "Watchlist" (Add/Remove), "Sources" (Drawer trigger).
+- **Compatibility Badges**:
+  - Native HLS/MP4 streams display cyan `[NATIVE]` badge.
+  - Legacy browser-only embed providers display muted coral `[EMBED]` badge.
 - **Season Selector**:
   - Horizontal list of season chips ("Season 1", "Season 2", etc.).
   - Pressing `Down` transfers focus directly to the first episode in the episode list.
 - **Episode List**:
   - Vertical list of episodes showing episode number, title, and runtime.
-  - Pressing `OK` on an episode immediately launches playback for that episode.
+  - Pressing `OK` on an episode immediately launches native playback for that episode.
 - **Recommended Titles Carousel**:
   - Located below the episode list for one-click discovery of related titles.
 - **Back Navigation**:
@@ -72,19 +75,31 @@ To prevent user disorientation from 10 feet away:
 - **Recent Searches**:
   - One-click pill list of previous queries.
 - **Results Grid**:
-  - Right pane or bottom pane dynamically displays live search results.
+  - Results pane dynamically displays live search results.
   - Pressing `Right` or `Down` moves focus from the keyboard to the results grid.
 
-### 3.5. Playback Screen
-- **HUD (Heads-Up Display) Auto-hide**:
-  - Playback controls overlay automatically disappears after 4 seconds of inactivity.
-  - Any D-pad key press brings the HUD back into view.
-- **Controls Layout**:
-  - Center: Play/Pause, -10s, +10s.
-  - Bottom: Seek timeline bar, current time / total duration.
-  - Top-Right: Source switcher button ("VidSrc.to", "AutoEmbed", etc.).
-- **Dismissal**:
-  - Pressing `Back` pauses playback and cleanly returns to Title Details.
+### 3.5. Native Player Screen (AndroidX Media3)
+- **Zero Third-Party WebViews**:
+  - 100% native ExoPlayer surface rendering hardware-accelerated HLS, DASH, and MP4 streams.
+- **HUD Auto-hide & Activity Reset**:
+  - Controls overlay automatically fades after 4 seconds of inactivity.
+  - Any D-pad key press (`Up`, `Down`, `Left`, `Right`, `OK`) immediately displays the HUD and resets the timer.
+- **D-pad Remote Seek Feedback**:
+  - Pressing `Left` or `Right` seeks -10s or +10s and triggers a visual feedback pill (`⏪ -10s`, `⏩ +10s`).
+- **Series Auto-Next Episode Prompt**:
+  - When within 30 seconds of an episode's completion, an overlay banner prompts:
+    `Next Episode in Xs: [OK] Next Episode  [Back] Dismiss`.
+  - Pressing `OK` immediately transitions to the next episode.
+- **TV Source Drawer**:
+  - Clicking the "Sources" button opens an on-screen drawer listing all configured providers with compatibility indicators.
+  - Selecting a compatible native provider hot-swaps the active MediaItem seamlessly.
+- **Dismissal & State Preservation**:
+  - Pressing `Back` pauses playback, persists resume position to `ContinueWatchingStore`, and cleanly returns to Title Details.
+
+### 3.6. Settings Screen
+- **D-pad Toggle Navigation**:
+  - Vertical list of settings rows with toggle switches for Ad Blocking, Tracker Protection, and Strict Redirect Validation.
+  - Action buttons for checking filter updates and clearing statistics with visible focus borders.
 
 ## 4. Focus Retention & State Restoration
 1. **Back-Stack State Preservation**:

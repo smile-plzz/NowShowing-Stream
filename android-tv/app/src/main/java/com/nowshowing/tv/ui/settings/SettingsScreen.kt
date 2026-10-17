@@ -1,5 +1,6 @@
 package com.nowshowing.tv.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -37,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +49,7 @@ import com.nowshowing.tv.ui.theme.AccentCyan
 import com.nowshowing.tv.ui.theme.AccentGold
 import com.nowshowing.tv.ui.theme.BgDark
 import com.nowshowing.tv.ui.theme.FocusBorder
+import com.nowshowing.tv.ui.theme.FocusGlow
 import com.nowshowing.tv.ui.theme.SurfaceDark
 import com.nowshowing.tv.ui.theme.SurfaceVariant
 import com.nowshowing.tv.ui.theme.TextMuted
@@ -80,13 +84,13 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Privacy & Content Blocking",
+                            text = "Security & Network Isolation",
                             color = TextPrimary,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Native Brave-inspired protection for TV streaming and embedded content",
+                            text = "Native stream validation, HTTPS enforcement, and redirect isolation for Android TV",
                             color = TextMuted,
                             fontSize = 13.sp
                         )
@@ -107,9 +111,9 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    StatBox(label = "Ads Blocked", count = uiState.totalAdsBlocked, color = AccentCyan)
+                    StatBox(label = "Malicious Hosts Intercepted", count = uiState.totalThreatsBlocked, color = AccentCyan)
                     StatBox(label = "Trackers Blocked", count = uiState.totalTrackersBlocked, color = AccentGold)
-                    StatBox(label = "Pop-ups Suppressed", count = uiState.totalPopupsBlocked, color = Color(0xFFFF5252))
+                    StatBox(label = "Dangerous Redirects Capped", count = uiState.totalRedirectsBlocked, color = Color(0xFFFF5252))
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
@@ -125,31 +129,31 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 SettingToggleItem(
-                    title = "Content & Advertising Blocking",
-                    description = "Intercepts video ad injectors, banners, and network-level advertising requests",
-                    isEnabled = uiState.isContentBlockingEnabled,
-                    onToggle = { viewModel.toggleContentBlocking() }
+                    title = "Media Domain & Endpoint Validation",
+                    description = "Validates remote streaming hosts and media manifests against verified filter lists",
+                    isEnabled = uiState.isDomainValidationEnabled,
+                    onToggle = { viewModel.toggleDomainValidation() }
                 )
 
                 SettingToggleItem(
-                    title = "Tracker & Telemetry Protection",
-                    description = "Blocks third-party analytics, fingerprinting, and behavioral tracking beacons",
+                    title = "Telemetry & Tracker Blocking",
+                    description = "Blocks third-party analytics beacons and background tracking endpoints",
                     isEnabled = uiState.isTrackerBlockingEnabled,
                     onToggle = { viewModel.toggleTrackerBlocking() }
                 )
 
                 SettingToggleItem(
-                    title = "Pop-up & Malicious Redirect Blocking",
-                    description = "Prevents unexpected window creation, tab hijacking, and rogue app intents",
-                    isEnabled = uiState.isPopupBlockingEnabled,
-                    onToggle = { viewModel.togglePopupBlocking() }
+                    title = "Redirect Depth Capping & Loop Defense",
+                    description = "Restricts network redirect chains to 5 hops to prevent tracking loops",
+                    isEnabled = uiState.isRedirectIsolationEnabled,
+                    onToggle = { viewModel.toggleRedirectIsolation() }
                 )
 
                 SettingToggleItem(
-                    title = "Third-Party Cookie Restrictions",
-                    description = "Restricts cross-site tracking cookies in embedded web player environments",
-                    isEnabled = uiState.isCookieRestrictionEnabled,
-                    onToggle = { viewModel.toggleCookieRestrictions() }
+                    title = "Strict HTTPS & Protocol Isolation",
+                    description = "Enforces secure HTTPS for all remote media streams (exempts local RFC-1918 subnets)",
+                    isEnabled = uiState.isHttpsEnforced,
+                    onToggle = { viewModel.toggleHttpsEnforcement() }
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -174,7 +178,7 @@ fun SettingsScreen(
                     )
 
                     TvSettingsButton(
-                        label = "Reset Blocking Statistics",
+                        label = "Reset Statistics",
                         icon = Icons.Default.Close,
                         onClick = { viewModel.resetStatistics() }
                     )
@@ -198,31 +202,27 @@ fun SettingsScreen(
                 item(key = "exemptions_section") {
                     Text(
                         text = "Exempt Video Sources (Protection Disabled)",
-                        color = AccentGold,
-                        fontSize = 16.sp,
+                        color = TextPrimary,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                }
 
-                    uiState.exemptSources.forEach { sourceName ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(SurfaceDark)
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = sourceName, color = TextPrimary, fontSize = 14.sp)
-                            TvSettingsButton(
-                                label = "Restore Protection",
-                                icon = Icons.Default.Check,
-                                onClick = { viewModel.removeSourceExemption(sourceName) }
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                    }
+                items(uiState.exemptSources.toList()) { source ->
+                    ExemptSourceRow(
+                        name = source,
+                        onRemove = { viewModel.removeSourceExemption(source) }
+                    )
+                }
+
+                item(key = "clear_all_exemptions") {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TvSettingsButton(
+                        label = "Clear All Source Exceptions",
+                        icon = Icons.Default.Close,
+                        onClick = { viewModel.clearSourceExceptions() }
+                    )
                 }
             }
         }
@@ -235,7 +235,7 @@ private fun StatBox(label: String, count: Long, color: Color) {
         Text(
             text = count.toString(),
             color = color,
-            fontSize = 26.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Black
         )
         Text(
@@ -260,11 +260,12 @@ private fun SettingToggleItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (isFocused) FocusBorder else SurfaceDark)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.05f),
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.06f),
                 shape = RoundedCornerShape(10.dp)
             )
             .focusable(interactionSource = interactionSource)
@@ -280,6 +281,7 @@ private fun SettingToggleItem(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = description,
                 color = if (isFocused) Color.Black.copy(alpha = 0.7f) else TextMuted,
@@ -293,14 +295,13 @@ private fun SettingToggleItem(
             checked = isEnabled,
             onCheckedChange = { onToggle() },
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.Black,
-                checkedTrackColor = if (isFocused) Color.Black else AccentCyan,
-                uncheckedThumbColor = TextMuted,
+                checkedThumbColor = AccentCyan,
+                checkedTrackColor = AccentCyan.copy(alpha = 0.3f),
+                uncheckedThumbColor = Color.Gray,
                 uncheckedTrackColor = SurfaceVariant
             )
         )
     }
-    Spacer(modifier = Modifier.height(8.dp))
 }
 
 @Composable
@@ -315,11 +316,16 @@ private fun TvSettingsButton(
 
     Row(
         modifier = Modifier
+            .shadow(
+                elevation = if (isFocused) 12.dp else 2.dp,
+                shape = RoundedCornerShape(8.dp),
+                spotColor = if (isFocused) FocusGlow else Color.Transparent
+            )
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isFocused) FocusBorder else SurfaceVariant)
+            .background(if (isFocused) FocusBorder else SurfaceDark)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.1f),
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(8.dp)
             )
             .focusable(interactionSource = interactionSource)
@@ -330,8 +336,8 @@ private fun TvSettingsButton(
         if (isLoading) {
             CircularProgressIndicator(
                 color = if (isFocused) Color.Black else AccentCyan,
-                modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
         } else {
@@ -346,7 +352,47 @@ private fun TvSettingsButton(
         Text(
             text = label,
             color = if (isFocused) Color.Black else TextPrimary,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun ExemptSourceRow(
+    name: String,
+    onRemove: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isFocused) FocusBorder else SurfaceDark)
+            .border(
+                width = if (isFocused) 2.dp else 1.dp,
+                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onRemove)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = name,
+            color = if (isFocused) Color.Black else TextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = "Click OK to Re-enable Protection",
+            color = if (isFocused) Color.Black else AccentGold,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
     }

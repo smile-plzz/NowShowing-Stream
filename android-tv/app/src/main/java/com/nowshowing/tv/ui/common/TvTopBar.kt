@@ -144,7 +144,7 @@ fun TvTopBar(
                 onClick = { onNavigate("watchlist") }
             )
             NavTabItem(
-                label = "Shields",
+                label = "Settings",
                 icon = Icons.Default.Security,
                 isSelected = currentRoute == "settings",
                 onClick = { onNavigate("settings") }

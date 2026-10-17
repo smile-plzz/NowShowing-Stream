@@ -289,7 +289,7 @@ fun DetailsScreen(
                                 ) {
                                     items(SourceRegistry.SOURCES) { src ->
                                         SourceChip(
-                                            name = src.name,
+                                            source = src,
                                             isSelected = uiState.selectedSource.name == src.name,
                                             onClick = {
                                                 viewModel.setSource(src)
@@ -480,30 +480,48 @@ private fun DetailActionButton(
 
 @Composable
 private fun SourceChip(
-    name: String,
+    source: com.nowshowing.tv.domain.source.VideoSource,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    Box(
+    val bg = when {
+        isFocused -> FocusBorder
+        isSelected -> AccentCyan.copy(alpha = 0.2f)
+        else -> SurfaceDark
+    }
+
+    val textColor = if (isFocused) Color.Black else TextPrimary
+
+    Row(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (isFocused) FocusBorder else if (isSelected) AccentCyan else SurfaceDark)
+            .background(bg)
             .border(
                 width = if (isFocused) 2.dp else if (isSelected) 1.dp else 0.dp,
-                color = if (isFocused) Color.White else Color.Transparent,
+                color = if (isFocused) Color.White else if (isSelected) AccentCyan else Color.Transparent,
                 shape = RoundedCornerShape(6.dp)
             )
             .focusable(interactionSource = interactionSource)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = name,
-            color = if (isFocused || isSelected) Color.Black else TextPrimary,
+            text = source.name,
+            color = textColor,
             fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        val tagText = if (source.isNativeCompatible) "NATIVE" else "EMBED"
+        val tagColor = if (source.isNativeCompatible) AccentCyan else Color(0xFFFF6B6B)
+        Text(
+            text = "[$tagText]",
+            color = if (isFocused) Color.Black.copy(alpha = 0.8f) else tagColor,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
     }

@@ -10,28 +10,28 @@ class ProtectionPreferences(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "nowshowing_protection_prefs"
-        private const val KEY_CONTENT_BLOCKING = "pref_content_blocking"
+        private const val KEY_DOMAIN_VALIDATION = "pref_domain_validation"
         private const val KEY_TRACKER_BLOCKING = "pref_tracker_blocking"
-        private const val KEY_POPUP_BLOCKING = "pref_popup_blocking"
-        private const val KEY_COOKIE_RESTRICTIONS = "pref_cookie_restrictions"
+        private const val KEY_REDIRECT_ISOLATION = "pref_redirect_isolation"
+        private const val KEY_HTTPS_ENFORCEMENT = "pref_https_enforcement"
         private const val KEY_EXEMPT_SOURCES = "pref_exempt_sources"
     }
 
-    var isContentBlockingEnabled: Boolean
-        get() = prefs.getBoolean(KEY_CONTENT_BLOCKING, true)
-        set(value) = prefs.edit().putBoolean(KEY_CONTENT_BLOCKING, value).apply()
+    var isDomainValidationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_DOMAIN_VALIDATION, true)
+        set(value) = prefs.edit().putBoolean(KEY_DOMAIN_VALIDATION, value).apply()
 
     var isTrackerBlockingEnabled: Boolean
         get() = prefs.getBoolean(KEY_TRACKER_BLOCKING, true)
         set(value) = prefs.edit().putBoolean(KEY_TRACKER_BLOCKING, value).apply()
 
-    var isPopupBlockingEnabled: Boolean
-        get() = prefs.getBoolean(KEY_POPUP_BLOCKING, true)
-        set(value) = prefs.edit().putBoolean(KEY_POPUP_BLOCKING, value).apply()
+    var isRedirectIsolationEnabled: Boolean
+        get() = prefs.getBoolean(KEY_REDIRECT_ISOLATION, true)
+        set(value) = prefs.edit().putBoolean(KEY_REDIRECT_ISOLATION, value).apply()
 
-    var isThirdPartyCookiesRestricted: Boolean
-        get() = prefs.getBoolean(KEY_COOKIE_RESTRICTIONS, true)
-        set(value) = prefs.edit().putBoolean(KEY_COOKIE_RESTRICTIONS, value).apply()
+    var isHttpsEnforced: Boolean
+        get() = prefs.getBoolean(KEY_HTTPS_ENFORCEMENT, true)
+        set(value) = prefs.edit().putBoolean(KEY_HTTPS_ENFORCEMENT, value).apply()
 
     fun isSourceExempt(sourceName: String): Boolean {
         val exempt = prefs.getStringSet(KEY_EXEMPT_SOURCES, emptySet()) ?: emptySet()

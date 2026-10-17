@@ -1,6 +1,8 @@
 package com.nowshowing.tv.playback
 
 import com.nowshowing.tv.domain.source.MediaFormat
+import com.nowshowing.tv.privacy.BlockType
+import com.nowshowing.tv.privacy.BlockingStatistics
 import com.nowshowing.tv.privacy.ContentBlockEngine
 import java.net.URI
 
@@ -10,8 +12,6 @@ sealed class RedirectValidationResult {
 }
 
 object SourceValidation {
-
-    private val ALLOWED_SCHEMES = setOf("https", "http")
 
     /**
      * Enforces HTTPS for all remote media endpoints.
@@ -91,13 +91,16 @@ object SourceValidation {
         targetUrl: String,
         hopCount: Int,
         maxHops: Int = 5,
-        contentBlockEngine: ContentBlockEngine? = null
+        contentBlockEngine: ContentBlockEngine? = null,
+        statistics: BlockingStatistics? = null
     ): RedirectValidationResult {
         if (hopCount > maxHops) {
+            statistics?.recordRedirectBlocked()
             return RedirectValidationResult.Rejected("Exceeded maximum redirect depth of $maxHops hops")
         }
 
         if (!isProtocolSecureOrLocal(targetUrl)) {
+            statistics?.recordRedirectBlocked()
             return RedirectValidationResult.Rejected("Insecure or disallowed protocol: $targetUrl")
         }
 
@@ -105,6 +108,11 @@ object SourceValidation {
         if (contentBlockEngine != null) {
             val blockDecision = contentBlockEngine.evaluate(targetUrl)
             if (blockDecision.isBlocked) {
+                if (blockDecision.type == BlockType.TRACKER) {
+                    statistics?.recordTrackerBlocked()
+                } else {
+                    statistics?.recordThreatBlocked()
+                }
                 return RedirectValidationResult.Rejected("Redirect target is a blocked tracker/ad domain: ${blockDecision.matchedRule}")
             }
         }

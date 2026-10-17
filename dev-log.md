@@ -106,4 +106,36 @@
   - Generated APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk` (22,335,836 bytes / 21.3 MB).
 - **Status**: Mandatory native-only playback architecture and redirect isolation fully delivered, tested, and verified.
 
+## [2026-10-17 22:15] - Phase 4: Privacy Reconcile, Test Suite Expansion & Signed Release Packaging
+- **Task**: Reconcile privacy subsystem for native-only playback, eliminate dead WebView interception code, expand unit tests to 100% coverage, configure signed release build, and verify release artifacts.
+- **Components Reconciled & Created**:
+  - **Dead Code Removal**: Removed `ProtectedWebViewClient.kt` and `PopupProtection.kt` as WebViews have been completely excised from the playback pipeline.
+  - **Privacy Engine Updates**:
+    - `ContentBlockEngine.kt`: Removed obsolete unconditional media extension bypass. Evaluates domain anchors and wildcard path rules with sub-0.05ms LRU decision cache.
+    - `SourceValidation.kt`: Connected to `BlockingStatistics` to record threats, tracker domains, and isolated redirect chains during media resolution.
+    - `ProtectionPreferences.kt` & `BlockingStatistics.kt`: Refactored preferences and counters for network privacy and redirect safety.
+    - `SettingsViewModel.kt` & `SettingsScreen.kt`: Updated 10-foot TV settings screen with live protection counters and D-pad toggles.
+  - **TV UI Compatibility Badges**:
+    - `DetailsScreen.kt`: Added `[NATIVE]` (Cyan) and `[EMBED]` (Coral) badges to source chips.
+    - `TvTopBar.kt`: Updated top bar navigation tab label to "Settings".
+  - **Unit Test Suite Expansion**:
+    - `PlaybackCoordinatorTest.kt`: Unit tests for fallback resolution, TV series episode calculations (`getNextEpisode`, `getPreviousEpisode`), seek clamping, and 30s auto-next prompt eligibility.
+    - `DataModelsTest.kt`: Unit tests verifying `ContinueItem` progressFraction calculation, `WatchlistItem`, and `GenreRowSeed` integrity.
+    - Total test suite: 33 tests across 7 test suites.
+  - **Release Build Signing (`app/build.gradle.kts`)**:
+    - Configured `signingConfigs.release` with fallback to ensure `assembleRelease` produces a hardware-installable, signed release APK.
+- **Verification Results**:
+  - `testDebugUnitTest`: **100% PASS** (33 tests across 7 suites, 0 failures, 0 errors).
+    - `DataModelsTest`: 3/3 passed
+    - `MoodRecommendationEngineTest`: 3/3 passed
+    - `SourceRegistryTest`: 6/6 passed
+    - `MediaSourceResolverTest`: 5/5 passed
+    - `PlaybackCoordinatorTest`: 5/5 passed
+    - `SourceValidationTest`: 4/4 passed
+    - `ContentBlockEngineTest`: 7/7 passed
+  - `assembleDebug`: **BUILD SUCCESSFUL**. Generated `app-debug.apk` (22,229,289 bytes, SHA-256: `1829C2F0D2661664FB3C59AE92DB5F657F47FF71C61FC5C126984EA798F07787`).
+  - `assembleRelease`: **BUILD SUCCESSFUL**. Generated `app-release.apk` (15,810,828 bytes, SHA-256: `7B26890F8A814CBDAE5838264E310F79F519DBD8C5A29D404F7BDB6AE387C31C`).
+- **Status**: Ready for git commit, remote synchronization to `https://github.com/smile-plzz/NowShowing-Stream-Android-TV`, and final handoff.
+
+
 

@@ -11,30 +11,30 @@ class BlockingStatistics(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "nowshowing_blocking_stats"
-        private const val KEY_ADS_BLOCKED = "stat_ads_blocked"
+        private const val KEY_THREATS_BLOCKED = "stat_threats_blocked"
         private const val KEY_TRACKERS_BLOCKED = "stat_trackers_blocked"
-        private const val KEY_POPUPS_BLOCKED = "stat_popups_blocked"
+        private const val KEY_REDIRECTS_BLOCKED = "stat_redirects_blocked"
     }
 
-    private val adsCount = AtomicLong(prefs.getLong(KEY_ADS_BLOCKED, 0L))
+    private val threatsCount = AtomicLong(prefs.getLong(KEY_THREATS_BLOCKED, 0L))
     private val trackersCount = AtomicLong(prefs.getLong(KEY_TRACKERS_BLOCKED, 0L))
-    private val popupsCount = AtomicLong(prefs.getLong(KEY_POPUPS_BLOCKED, 0L))
+    private val redirectsCount = AtomicLong(prefs.getLong(KEY_REDIRECTS_BLOCKED, 0L))
 
-    val totalAdsBlocked: Long
-        get() = adsCount.get()
+    val totalThreatsBlocked: Long
+        get() = threatsCount.get()
 
     val totalTrackersBlocked: Long
         get() = trackersCount.get()
 
-    val totalPopupsBlocked: Long
-        get() = popupsCount.get()
+    val totalRedirectsBlocked: Long
+        get() = redirectsCount.get()
 
     val totalBlocked: Long
-        get() = totalAdsBlocked + totalTrackersBlocked + totalPopupsBlocked
+        get() = totalThreatsBlocked + totalTrackersBlocked + totalRedirectsBlocked
 
-    fun recordAdBlocked() {
-        val newVal = adsCount.incrementAndGet()
-        prefs.edit().putLong(KEY_ADS_BLOCKED, newVal).apply()
+    fun recordThreatBlocked() {
+        val newVal = threatsCount.incrementAndGet()
+        prefs.edit().putLong(KEY_THREATS_BLOCKED, newVal).apply()
     }
 
     fun recordTrackerBlocked() {
@@ -42,15 +42,15 @@ class BlockingStatistics(context: Context) {
         prefs.edit().putLong(KEY_TRACKERS_BLOCKED, newVal).apply()
     }
 
-    fun recordPopupBlocked() {
-        val newVal = popupsCount.incrementAndGet()
-        prefs.edit().putLong(KEY_POPUPS_BLOCKED, newVal).apply()
+    fun recordRedirectBlocked() {
+        val newVal = redirectsCount.incrementAndGet()
+        prefs.edit().putLong(KEY_REDIRECTS_BLOCKED, newVal).apply()
     }
 
     fun clearStats() {
-        adsCount.set(0L)
+        threatsCount.set(0L)
         trackersCount.set(0L)
-        popupsCount.set(0L)
+        redirectsCount.set(0L)
         prefs.edit().clear().apply()
     }
 }

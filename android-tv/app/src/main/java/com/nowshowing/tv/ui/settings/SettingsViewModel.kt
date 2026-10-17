@@ -12,13 +12,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
-    val isContentBlockingEnabled: Boolean = true,
+    val isDomainValidationEnabled: Boolean = true,
     val isTrackerBlockingEnabled: Boolean = true,
-    val isPopupBlockingEnabled: Boolean = true,
-    val isCookieRestrictionEnabled: Boolean = true,
-    val totalAdsBlocked: Long = 0L,
+    val isRedirectIsolationEnabled: Boolean = true,
+    val isHttpsEnforced: Boolean = true,
+    val totalThreatsBlocked: Long = 0L,
     val totalTrackersBlocked: Long = 0L,
-    val totalPopupsBlocked: Long = 0L,
+    val totalRedirectsBlocked: Long = 0L,
     val exemptSources: Set<String> = emptySet(),
     val updateStatusMessage: String? = null,
     val isUpdatingFilters: Boolean = false
@@ -38,20 +38,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshState() {
         _uiState.value = SettingsUiState(
-            isContentBlockingEnabled = preferences.isContentBlockingEnabled,
+            isDomainValidationEnabled = preferences.isDomainValidationEnabled,
             isTrackerBlockingEnabled = preferences.isTrackerBlockingEnabled,
-            isPopupBlockingEnabled = preferences.isPopupBlockingEnabled,
-            isCookieRestrictionEnabled = preferences.isThirdPartyCookiesRestricted,
-            totalAdsBlocked = statistics.totalAdsBlocked,
+            isRedirectIsolationEnabled = preferences.isRedirectIsolationEnabled,
+            isHttpsEnforced = preferences.isHttpsEnforced,
+            totalThreatsBlocked = statistics.totalThreatsBlocked,
             totalTrackersBlocked = statistics.totalTrackersBlocked,
-            totalPopupsBlocked = statistics.totalPopupsBlocked,
+            totalRedirectsBlocked = statistics.totalRedirectsBlocked,
             exemptSources = preferences.getExemptSources()
         )
     }
 
-    fun toggleContentBlocking() {
-        val newVal = !preferences.isContentBlockingEnabled
-        preferences.isContentBlockingEnabled = newVal
+    fun toggleDomainValidation() {
+        val newVal = !preferences.isDomainValidationEnabled
+        preferences.isDomainValidationEnabled = newVal
         refreshState()
     }
 
@@ -61,15 +61,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refreshState()
     }
 
-    fun togglePopupBlocking() {
-        val newVal = !preferences.isPopupBlockingEnabled
-        preferences.isPopupBlockingEnabled = newVal
+    fun toggleRedirectIsolation() {
+        val newVal = !preferences.isRedirectIsolationEnabled
+        preferences.isRedirectIsolationEnabled = newVal
         refreshState()
     }
 
-    fun toggleCookieRestrictions() {
-        val newVal = !preferences.isThirdPartyCookiesRestricted
-        preferences.isThirdPartyCookiesRestricted = newVal
+    fun toggleHttpsEnforcement() {
+        val newVal = !preferences.isHttpsEnforced
+        preferences.isHttpsEnforced = newVal
         refreshState()
     }
 
@@ -92,12 +92,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isUpdatingFilters = true,
-                updateStatusMessage = "Checking online for latest EasyList and EasyPrivacy updates…"
+                updateStatusMessage = "Checking online for latest domain rules updates…"
             )
             val success = FilterListManager.updateRulesOnline(getApplication())
             _uiState.value = _uiState.value.copy(
                 isUpdatingFilters = false,
-                updateStatusMessage = if (success) "Filter lists successfully updated to latest version." else "Filter lists are already up to date (using bundled ruleset)."
+                updateStatusMessage = if (success) "Domain and tracker filter lists updated to latest version." else "Filter lists are already up to date (using bundled baseline)."
             )
         }
     }

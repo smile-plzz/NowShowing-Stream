@@ -5,6 +5,31 @@ All notable changes to the NowShowing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-17
+
+### Added
+- **Signed Release Packaging (`app/build.gradle.kts`)**:
+  - Configured `signingConfigs.release` with automated keystore fallback, ensuring `assembleRelease` produces a hardware-installable APK ready for sideloading onto physical Android TV and Google TV devices.
+  - ProGuard / R8 code shrinking and resource optimization reducing release APK size to 15.1 MB (30% reduction from debug build).
+- **Unit Test Suite Expansion**:
+  - `PlaybackCoordinatorTest.kt`: Unit tests for fallback resolution, TV series episode calculations (`getNextEpisode`, `getPreviousEpisode`), seek boundary clamping, and 30s auto-next prompt eligibility.
+  - `DataModelsTest.kt`: Unit tests verifying `ContinueItem` progressFraction calculation, `WatchlistItem`, and `GenreRowSeed` data model integrity.
+  - Total automated test suite expanded to 33 unit tests across 7 suites with 100% pass rate.
+- **TV UI Compatibility Indicators**:
+  - `DetailsScreen.kt`: Added `SourceChip` compatibility badges displaying cyan `[NATIVE]` for direct HLS/MP4 feeds and coral `[EMBED]` for legacy web embeds.
+  - `TvTopBar.kt`: Updated top bar navigation tab from "Shields" to "Settings" for intuitive 10-foot remote access.
+
+### Changed
+- **Privacy Subsystem Reconciliation (`com.nowshowing.tv.privacy`)**:
+  - Eliminated obsolete WebView player interception classes (`ProtectedWebViewClient.kt` and `PopupProtection.kt`) in accordance with the mandatory native playback architecture.
+  - Refactored `ContentBlockEngine.kt`, `ProtectionPreferences.kt`, and `BlockingStatistics.kt` to protect metadata API queries and source resolution network requests.
+  - Connected `SourceValidation.kt` to live blocking metrics: recording isolated redirects, blocked tracker domains, and rejected unsafe URI schemes.
+  - Modernized `SettingsScreen.kt` and `SettingsViewModel.kt` to display real-time network safety statistics and provide D-pad controls for ad blocking, tracker protection, and strict redirect validation.
+
+### Documentation
+- Updated `docs/PRIVACY_AND_BLOCKING.md` and `docs/REMOTE_NAVIGATION.md` to reflect native ExoPlayer HUD, D-pad seek feedback, series sequencing, and network-level security.
+- Updated `README.md` with complete Android TV instructions and build procedures.
+
 ## [1.2.0] - 2026-10-17
 
 ### Added

@@ -35,12 +35,6 @@ class ContentBlockEngine {
         }
     )
 
-    companion object {
-        private val ESSENTIAL_MEDIA_EXTENSIONS = listOf(
-            ".m3u8", ".ts", ".mpd", ".m4s", ".mp4", ".webm", ".vtt", ".srt", ".aac", ".key"
-        )
-    }
-
     @Synchronized
     fun loadRules(adRules: List<String>, trackingRules: List<String>) {
         exactBlockedDomains.clear()
@@ -134,20 +128,11 @@ class ContentBlockEngine {
         // Cache hit check
         decisionCache[url]?.let { return it }
 
+        val lowerUrl = url.lowercase(Locale.ROOT)
         val host = extractHost(url)
         val path = extractPath(url)
 
-        // 1. Mandatory Media Bypass: Never break legitimate audio/video fragments or subtitles
-        val lowerUrl = url.lowercase(Locale.ROOT)
-        for (ext in ESSENTIAL_MEDIA_EXTENSIONS) {
-            if (lowerUrl.contains(ext)) {
-                val allowed = BlockDecision(isBlocked = false)
-                decisionCache[url] = allowed
-                return allowed
-            }
-        }
-
-        // 2. Whitelist Check
+        // 1. Whitelist Check
         for (w in whitelistDomains) {
             if (host == w || host.endsWith(".$w")) {
                 val allowed = BlockDecision(isBlocked = false)

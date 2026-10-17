@@ -68,16 +68,15 @@ class ContentBlockEngineTest {
     }
 
     @Test
-    fun testMediaSegmentsNeverBlockedEvenWithKeywords() {
-        // Even if URL contains "popunder" or "banner", video segments must always pass
-        val decision = engine.evaluate("https://video-cdn.example.com/popunder/segment_001.ts")
-        assertFalse("TS media chunk must bypass blocking", decision.isBlocked)
+    fun testMediaStreamsAllowedOnCleanCdns() {
+        val decision = engine.evaluate("https://video-cdn.example.com/hls/segment_001.ts")
+        assertFalse("TS media chunk must not be blocked", decision.isBlocked)
 
-        val decision2 = engine.evaluate("https://video-cdn.example.com/ad/banner/master.m3u8")
-        assertFalse("HLS m3u8 playlist must bypass blocking", decision2.isBlocked)
+        val decision2 = engine.evaluate("https://video-cdn.example.com/hls/master.m3u8")
+        assertFalse("HLS m3u8 playlist must not be blocked", decision2.isBlocked)
 
-        val decision3 = engine.evaluate("https://video-cdn.example.com/video.mp4")
-        assertFalse("MP4 stream must bypass blocking", decision3.isBlocked)
+        val decision3 = engine.evaluate("https://commondatastorage.googleapis.com/sample/BigBuckBunny.mp4")
+        assertFalse("MP4 stream must not be blocked", decision3.isBlocked)
     }
 
     @Test
