@@ -86,6 +86,7 @@ A native television application for Android TV & Google TV located in [`android-
   - [QA Test Plan](docs/QA_TEST_PLAN.md)
   - [Installation & Sideloading](docs/INSTALLATION.md)
   - [Release Checklist](docs/RELEASE_CHECKLIST.md)
+  - [Claude Handoff Guide](docs/CLAUDE_HANDOFF.md)
 
 ### Building the Android TV Application
 ```bash
