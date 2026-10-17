@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <!-- Background -->
+    <path
+        android:pathData="M0,0h320v180h-320z"
+        android:fillColor="#0D0E15" />
+    <!-- Gradient accent pill -->
+    <path
+        android:pathData="M0,0h320v6h-320z"
+        android:fillColor="#00D2C4" />
+    <!-- Movie Projector / Reel Graphic -->
+    <path
+        android:pathData="M50,90 m-35,0 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0"
+        android:strokeWidth="6"
+        android:strokeColor="#00D2C4" />
+    <path
+        android:pathData="M50,90 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0"
+        android:strokeWidth="4"
+        android:strokeColor="#FFB800" />
+    <!-- Play triangle inside reel -->
+    <path
+        android:pathData="M46,82 L58,90 L46,98 Z"
+        android:fillColor="#00D2C4" />
+    <!-- Accent Line -->
+    <path
+        android:pathData="M100,55 L290,55"
+        android:strokeWidth="2"
+        android:strokeColor="#3300D2C4" />
+    <!-- Cinematic badge -->
+    <path
+        android:pathData="M102,68 h50 v16 h-50 z"
+        android:fillColor="#2200D2C4" />
+    <!-- Accent Dots -->
+    <path
+        android:pathData="M105,130 h150 v3 h-150 z"
+        android:fillColor="#FFB800" />
+</vector>

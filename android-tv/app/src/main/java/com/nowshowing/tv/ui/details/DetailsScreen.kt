@@ -1,0 +1,596 @@
+package com.nowshowing.tv.ui.details
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Source
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.nowshowing.tv.domain.source.SourceRegistry
+import com.nowshowing.tv.ui.common.TvContentRow
+import com.nowshowing.tv.ui.common.TvTopBar
+import com.nowshowing.tv.ui.theme.AccentCyan
+import com.nowshowing.tv.ui.theme.AccentGold
+import com.nowshowing.tv.ui.theme.BgDark
+import com.nowshowing.tv.ui.theme.FocusBorder
+import com.nowshowing.tv.ui.theme.FocusGlow
+import com.nowshowing.tv.ui.theme.SurfaceDark
+import com.nowshowing.tv.ui.theme.SurfaceVariant
+import com.nowshowing.tv.ui.theme.TextMuted
+import com.nowshowing.tv.ui.theme.TextPrimary
+
+@Composable
+fun DetailsScreen(
+    imdbId: String,
+    type: String,
+    viewModel: DetailsViewModel,
+    onNavigate: (String) -> Unit,
+    onPlay: (String, Int, Int, String) -> Unit,
+    onSelectRecommended: (String, String) -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var showSourceSelector by remember { mutableStateOf(false) }
+
+    LaunchedEffect(imdbId, type) {
+        viewModel.loadDetails(imdbId, type)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgDark)
+    ) {
+        TvTopBar(currentRoute = "", onNavigate = onNavigate)
+
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AccentCyan)
+            }
+        } else {
+            val detail = uiState.detail
+            if (detail == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "Could not load title details.", color = TextMuted, fontSize = 16.sp)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 48.dp)
+                ) {
+                    // Hero Backdrop & Main Metadata Row
+                    item(key = "header_info") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(380.dp)
+                        ) {
+                            // Backdrop Image
+                            if (!detail.poster.isNullOrBlank() && detail.poster != "N/A") {
+                                AsyncImage(
+                                    model = detail.poster,
+                                    contentDescription = detail.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            // Dark Gradient
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Black.copy(alpha = 0.6f),
+                                                Color.Black.copy(alpha = 0.95f),
+                                                BgDark
+                                            )
+                                        )
+                                    )
+                            )
+
+                            // Poster + Details layout
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 48.dp, vertical = 20.dp),
+                                verticalAlignment = Alignment.Bottom
+                            ) {
+                                // Poster Card
+                                Box(
+                                    modifier = Modifier
+                                        .width(180.dp)
+                                        .height(270.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(SurfaceDark)
+                                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                ) {
+                                    if (!detail.poster.isNullOrBlank() && detail.poster != "N/A") {
+                                        AsyncImage(
+                                            model = detail.poster,
+                                            contentDescription = detail.title,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(28.dp))
+
+                                // Text details & action buttons
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Bottom
+                                ) {
+                                    // Title
+                                    Text(
+                                        text = detail.title,
+                                        color = TextPrimary,
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Black,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // Tags row: Year, Genre, Rating, Runtime, Rated
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        TagBadge(text = detail.year)
+                                        if (!detail.genre.isNullOrBlank() && detail.genre != "N/A") {
+                                            detail.genre.split(",").take(3).forEach { g ->
+                                                TagBadge(text = g.trim())
+                                            }
+                                        }
+                                        if (!detail.imdbRating.isNullOrBlank() && detail.imdbRating != "N/A") {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(SurfaceVariant)
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = AccentGold,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    text = detail.imdbRating,
+                                                    color = AccentGold,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        if (!detail.runtime.isNullOrBlank() && detail.runtime != "N/A") {
+                                            TagBadge(text = detail.runtime)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Plot
+                                    Text(
+                                        text = detail.plot ?: "",
+                                        color = TextMuted,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Primary Action Buttons Row
+                                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                        // Play / Resume Button
+                                        DetailActionButton(
+                                            label = if (uiState.type == "series") "Play S${uiState.selectedSeason}:E${uiState.selectedEpisode}" else "Play",
+                                            icon = Icons.Default.PlayArrow,
+                                            isPrimary = true,
+                                            onClick = {
+                                                onPlay(
+                                                    detail.imdbID,
+                                                    uiState.selectedSeason,
+                                                    uiState.selectedEpisode,
+                                                    uiState.type
+                                                )
+                                            }
+                                        )
+
+                                        // Watchlist Toggle
+                                        DetailActionButton(
+                                            label = if (uiState.isInWatchlist) "In Watchlist" else "Watchlist",
+                                            icon = if (uiState.isInWatchlist) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                            isPrimary = false,
+                                            onClick = { viewModel.toggleWatchlist() }
+                                        )
+
+                                        // Source Selector Trigger
+                                        DetailActionButton(
+                                            label = "Source: ${uiState.selectedSource.name}",
+                                            icon = Icons.Default.Source,
+                                            isPrimary = false,
+                                            onClick = { showSourceSelector = !showSourceSelector }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Source Switcher Row (if toggled)
+                    if (showSourceSelector) {
+                        item(key = "source_selector") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 48.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Select Streaming Provider",
+                                    color = TextPrimary,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(SourceRegistry.SOURCES) { src ->
+                                        SourceChip(
+                                            name = src.name,
+                                            isSelected = uiState.selectedSource.name == src.name,
+                                            onClick = {
+                                                viewModel.setSource(src)
+                                                showSourceSelector = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // TV Series Seasons & Episodes Selector
+                    if (uiState.type == "series" && uiState.totalSeasons > 0) {
+                        item(key = "seasons_row") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 48.dp, vertical = 14.dp)
+                            ) {
+                                Text(
+                                    text = "Seasons",
+                                    color = TextPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    items(uiState.totalSeasons) { index ->
+                                        val seasonNum = index + 1
+                                        SeasonPill(
+                                            season = seasonNum,
+                                            isSelected = uiState.selectedSeason == seasonNum,
+                                            onClick = { viewModel.selectSeason(seasonNum) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Episodes Row
+                        if (uiState.episodes.isNotEmpty()) {
+                            item(key = "episodes_row") {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 48.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "Season ${uiState.selectedSeason} Episodes",
+                                        color = TextPrimary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        items(uiState.episodes) { ep ->
+                                            val epNum = ep.episode.toIntOrNull() ?: 1
+                                            EpisodeCard(
+                                                episode = ep,
+                                                isSelected = uiState.selectedEpisode == epNum,
+                                                onClick = {
+                                                    viewModel.selectEpisode(epNum)
+                                                    onPlay(
+                                                        detail.imdbID,
+                                                        uiState.selectedSeason,
+                                                        epNum,
+                                                        "series"
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Metadata details: Director, Cast, Country
+                    item(key = "cast_details") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp, vertical = 12.dp)
+                        ) {
+                            if (!detail.director.isNullOrBlank() && detail.director != "N/A") {
+                                Text(
+                                    text = "Director: ${detail.director}",
+                                    color = TextMuted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            if (!detail.actors.isNullOrBlank() && detail.actors != "N/A") {
+                                Text(
+                                    text = "Cast: ${detail.actors}",
+                                    color = TextMuted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            if (!detail.country.isNullOrBlank() && detail.country != "N/A") {
+                                Text(
+                                    text = "Country: ${detail.country}",
+                                    color = TextMuted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Recommended Titles
+                    if (uiState.recommendations.isNotEmpty()) {
+                        item(key = "recommendations") {
+                            TvContentRow(
+                                title = "More Like This",
+                                items = uiState.recommendations,
+                                onItemClick = { m ->
+                                    onSelectRecommended(
+                                        m.imdbID,
+                                        if (m.type == "series") "series" else "movie"
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(SurfaceVariant)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(text = text, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun DetailActionButton(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isPrimary: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val bg = when {
+        isFocused -> FocusBorder
+        isPrimary -> AccentCyan
+        else -> SurfaceVariant
+    }
+
+    val contentColor = when {
+        isFocused || isPrimary -> Color.Black
+        else -> TextPrimary
+    }
+
+    Row(
+        modifier = Modifier
+            .shadow(
+                elevation = if (isFocused) 12.dp else 2.dp,
+                shape = RoundedCornerShape(8.dp),
+                spotColor = if (isFocused) FocusGlow else Color.Transparent
+            )
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = if (isFocused) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(imageVector = icon, contentDescription = label, tint = contentColor, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = label, color = contentColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun SourceChip(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (isFocused) FocusBorder else if (isSelected) AccentCyan else SurfaceDark)
+            .border(
+                width = if (isFocused) 2.dp else if (isSelected) 1.dp else 0.dp,
+                color = if (isFocused) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(6.dp)
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = name,
+            color = if (isFocused || isSelected) Color.Black else TextPrimary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun SeasonPill(
+    season: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isFocused) FocusBorder else if (isSelected) SurfaceVariant else SurfaceDark)
+            .border(
+                width = if (isFocused) 2.dp else if (isSelected) 1.5.dp else 1.dp,
+                color = if (isFocused) Color.White else if (isSelected) AccentCyan else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = "Season $season",
+            color = if (isFocused) Color.Black else if (isSelected) AccentCyan else TextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun EpisodeCard(
+    episode: com.nowshowing.tv.data.model.OmdbEpisode,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Column(
+        modifier = Modifier
+            .width(180.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isFocused) FocusBorder else SurfaceDark)
+            .border(
+                width = if (isFocused) 2.dp else if (isSelected) 1.dp else 0.dp,
+                color = if (isFocused) Color.White else if (isSelected) AccentCyan else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "EPISODE ${episode.episode}",
+                color = if (isFocused) Color.Black else AccentCyan,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (!episode.imdbRating.isNullOrBlank() && episode.imdbRating != "N/A") {
+                Text(
+                    text = "★ ${episode.imdbRating}",
+                    color = if (isFocused) Color.Black else AccentGold,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = episode.title,
+            color = if (isFocused) Color.Black else TextPrimary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}

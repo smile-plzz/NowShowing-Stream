@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">NowShowing TV</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_movies">Movies</string>
+    <string name="nav_tv">TV Shows</string>
+    <string name="nav_moods">Moods</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_watchlist">Watchlist</string>
+    <string name="play">Play</string>
+    <string name="resume">Resume</string>
+    <string name="watchlist_add">+ Watchlist</string>
+    <string name="watchlist_remove">✓ In Watchlist</string>
+    <string name="source_switch">Switch Source</string>
+    <string name="source_open_tab">Open in External Player</string>
+</resources>

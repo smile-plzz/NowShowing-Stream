@@ -1,2 +1,12 @@
 .DS_Store
 node_modules/
+
+# Android build artifacts
+.gradle/
+build/
+android-tv/.gradle/
+android-tv/build/
+android-tv/app/build/
+android-tv/local.properties
+*.apk
+*.aab

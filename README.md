@@ -67,4 +67,29 @@ Since there's no build step, deployment is just publishing the repo's static fil
 
 ---
 
+## NowShowing TV (Native Android TV / Google TV)
+
+A native television application for Android TV & Google TV located in [`android-tv/`](android-tv/):
+
+- **10-foot remote experience**: Complete navigation with directional D-pad, OK, Back, and Media buttons.
+- **Ported recommendation engine**: Full 29-mood engine with genre verification and ranked candidate results.
+- **TV-tailored playback**: Multi-tier playback engine featuring AndroidX Media3 (ExoPlayer), hardware-accelerated TV WebView player, and external player intent handoff.
+- **Complete documentation**:
+  - [Android TV PRD](docs/ANDROID_TV_PRD.md)
+  - [System Architecture](docs/ARCHITECTURE.md)
+  - [Remote Navigation & Focus](docs/REMOTE_NAVIGATION.md)
+  - [Playback Compatibility](docs/PLAYBACK_COMPATIBILITY.md)
+  - [QA Test Plan](docs/QA_TEST_PLAN.md)
+  - [Installation & Sideloading](docs/INSTALLATION.md)
+  - [Release Checklist](docs/RELEASE_CHECKLIST.md)
+
+### Building the Android TV APK
+```bash
+cd android-tv
+./gradlew assembleDebug
+# APK is generated at: android-tv/app/build/outputs/apk/debug/app-debug.apk
+```
+
+---
+
 Built by Ismail Hossain. Contact: ismailhossain013@gmail.com
