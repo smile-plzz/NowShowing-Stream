@@ -6,7 +6,20 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 
+import com.nowshowing.tv.privacy.FilterListManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 class NowShowingApp : Application(), ImageLoaderFactory {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Initialize baseline privacy shields asynchronously
+        CoroutineScope(Dispatchers.IO).launch {
+            FilterListManager.initialize(this@NowShowingApp)
+        }
+    }
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)

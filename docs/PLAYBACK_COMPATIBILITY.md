@@ -87,5 +87,12 @@ The 11 providers ported from `js/config.js` have been audited for Android TV com
    - Pressing `OK` automatically swaps the stream URL to the next available source in `VIDEO_SOURCES` without exiting the player.
 3. **Memory**: When a user manually switches sources and playback succeeds, that source is recorded as the new preferred source in `SharedPreferences`.
 
-## 5. Compliance & Security Notice
+## 5. Privacy Shields & Source Impact
+NowShowing TV embeds a native content-filtering layer (`ProtectedWebViewClient`) into all web player sessions:
+- **Advertising & Tracker Blocking**: Blocked at network request level; returning empty 200 OK responses prevents embedded player scripts from stalling.
+- **Pop-up & Redirection Suppression**: Aggressive ad networks attempting to spawn pop-unders or hijack WebView URLs via `intent://` or unauthorized redirects are blocked.
+- **Whitelisted Video Streams**: Direct media segments (`.m3u8`, `.ts`, `.mpd`, `.m4s`, `.mp4`) and subtitles are permanently exempted from blocking rules.
+- **Source-Specific Override**: If a third-party source utilizes anti-adblock mechanisms or fails to load under active filtering, users can toggle shields off for that specific provider using the TV HUD or the 10-second recovery prompt (*"Disable Shields for this source"*).
+
+## 6. Compliance & Security Notice
 NowShowing TV does not host, index, or proxy video streams. It acts strictly as a discovery and client-side playback coordinator. No DRM mechanisms are bypassed, and no paywalls are skirted.

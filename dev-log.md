@@ -43,3 +43,33 @@
   - Build task `assembleDebug`: Succeeded in 7m 30s. Generated APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk` (21.1 MB).
   - Unit tests `testDebugUnitTest`: 100% pass (22 tasks executed/up-to-date, BUILD SUCCESSFUL in 44s).
 - **Status**: Native Android TV client fully built, tested, and verified.
+
+## [2026-10-17 21:15] - Phase 2: Native Brave-Inspired Privacy & Content Blocking Implementation
+- **Task**: Implement native ad, tracker, pop-up, and redirect blocking system inside the Android TV application.
+- **Components Implemented**:
+  - **Core Privacy Module (`android-tv/app/src/main/java/com/nowshowing/tv/privacy/`)**:
+    - `ContentBlockEngine.kt`: Pure Kotlin URL/domain parser and ABP-style rule matcher. Supports domain anchors (`||domain.com^`), path wildcards (`/ads/*`), media stream bypass (`.m3u8`, `.ts`, `.mpd`, `.m4s`, `.mp4`, `.vtt`), and a thread-safe 1,000-entry LRU decision cache for sub-millisecond evaluation.
+    - `FilterListManager.kt`: Manages bundled baseline filter lists (`filters_adblock.txt`, `filters_tracking.txt` under `assets/filters/`) with local app cache storage and asynchronous HTTPS rule updates.
+    - `ProtectionPreferences.kt`: Thread-safe SharedPreferences store for user toggles (ad, tracker, pop-up, cookie restrictions) and per-source exemptions (`setSourceExempt(domain, exempt)`).
+    - `BlockingStatistics.kt`: Thread-safe local atomic counters (`AtomicInteger`) tracking blocked ads, trackers, and suppressed pop-ups. Zero remote transmission.
+    - `ProtectedWebViewClient.kt`: Intercepts WebView HTTP/HTTPS network requests via `shouldInterceptRequest`. Intercepts and logs blocked domains, returns empty 200 OK HTTP responses, prevents non-HTTP/HTTPS intent scheme hijacking, and enforces navigation boundaries.
+    - `PopupProtection.kt`: Custom `WebChromeClient` blocking unsolicited windows (`onCreateWindow` returns false) and suppressing intrusive JavaScript alert dialogs.
+  - **Player & HUD Integration (`PlayerScreen.kt`)**:
+    - Configured hardware-accelerated WebView with `ProtectedWebViewClient` and `PopupProtection`.
+    - Integrated privacy shields status badge in HUD overlay: `🛡️ Shields: ON (N blocked)`.
+    - Added one-click remote D-pad toggle: "🛡️ Disable Shields (This Source)" when playback fails or embeds break.
+    - 10-second blank player detection recovery dialog offers instant source rotation or shield toggle.
+  - **Settings UI (`SettingsScreen.kt`, `SettingsViewModel.kt`)**:
+    - Dedicated 10-foot TV settings screen accessible from top navigation tab (`Settings`).
+    - Toggle cards with D-pad focus for Ad Blocking, Tracker Blocking, Pop-up Blocking, and Third-Party Cookie restrictions.
+    - Live blocking statistics display (Total Ads Blocked, Trackers Blocked, Pop-ups Blocked).
+    - "Update Filter Rules" action button triggering background update from remote repositories.
+    - "Reset Statistics" button.
+  - **Unit Tests**:
+    - `ContentBlockEngineTest.kt`: Comprehensive test suite verifying domain matching, wildcard paths, media bypass logic, tracker rules, and exception overrides.
+- **Verification Results**:
+  - Unit tests `testDebugUnitTest`: **100% PASS** (22 tasks executed/up-to-date, BUILD SUCCESSFUL in 41s).
+  - Build task `assembleDebug`: **100% BUILD SUCCESSFUL** (36s).
+  - Generated APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk` (22,268,688 bytes / 21.2 MB).
+- **Status**: Brave-inspired native content blocking feature fully implemented, tested, and verified.
+

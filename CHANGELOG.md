@@ -5,6 +5,30 @@ All notable changes to the NowShowing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-17
+
+### Added
+- **Native Brave-Inspired Privacy & Content Blocking (`android-tv/app/src/main/java/com/nowshowing/tv/privacy/`)**:
+  - Native network request interception via `WebViewClient.shouldInterceptRequest` returning empty 200 OK responses for blocked requests.
+  - High-performance Pure-Kotlin Adblock Plus (ABP) rule matcher (`ContentBlockEngine.kt`) supporting domain anchors (`||domain^`), path wildcards (`/ads/*`), and a 1000-entry LRU decision cache.
+  - Automatic media bypass guaranteeing `.m3u8`, `.ts`, `.mpd`, `.m4s`, and `.mp4` video segments are never disrupted.
+  - Unsolicited pop-up, background tab, and alert dialog suppression via `PopupProtection.kt` (`WebChromeClient`).
+  - Bundled offline filter rules (`assets/filters/filters_adblock.txt`, `filters_tracking.txt`) with background HTTPS update capabilities.
+  - Per-source shield exemption overrides with persistence in SharedPreferences.
+  - Thread-safe local atomic telemetry counters (`BlockingStatistics.kt`) tracking blocked ads, trackers, and suppressed pop-ups without any remote data transmission.
+- **TV Player HUD Shields Integration (`PlayerScreen.kt`)**:
+  - Live HUD shield badge showing active protection state and blocked item counter (`🛡️ Shields: ON (N blocked)`).
+  - Remote-friendly one-click toggle to disable shields for the active streaming source if playback fails.
+  - Recovery prompt integration allowing users to disable shields or switch sources upon detecting a blank player.
+- **Privacy & Content Blocking TV Settings Screen (`SettingsScreen.kt`)**:
+  - Dedicated TV-first settings screen accessible via top navigation.
+  - D-pad toggles for Ad Blocking, Tracker Blocking, Pop-up Blocking, and Third-Party Cookie restrictions.
+  - Real-time blocking counters and one-click statistics reset.
+  - Manual "Update Filter Rules" trigger for refreshing blocklists from remote repositories.
+- **Privacy Documentation**:
+  - Added `docs/PRIVACY_AND_BLOCKING.md` detailing architecture, network interception, rule syntax, and threat model.
+  - Updated `docs/ARCHITECTURE.md`, `docs/PLAYBACK_COMPATIBILITY.md`, `docs/QA_TEST_PLAN.md`, and `docs/RELEASE_CHECKLIST.md`.
+
 ## [1.0.0] - 2026-10-17
 
 ### Added

@@ -97,15 +97,39 @@ flowchart LR
    - Primary player for direct media streams.
    - Provides native TV playback controls: timeline scrubber, Play/Pause, 10s skip, audio/subtitle selection, and error recovery.
    - Emits playback milestones to update `ContinueWatchingEntity`. Marks completion at 90% duration.
-2. **TV-Optimized WebView**:
-   - Custom `WebViewClient` and `WebChromeClient` with hardware acceleration enabled.
-   - Injects custom viewport and styling to suppress desktop chrome and optimize for 16:9 full-screen presentation.
-   - Captures back key to return cleanly to detail screen.
-   - Monitors page load errors to trigger source rotation prompt.
+2. **TV-Optimized WebView with Privacy Shields**:
+   - Custom `ProtectedWebViewClient` and `PopupProtection` (WebChromeClient) with hardware acceleration enabled.
+   - Built-in Adblock Plus (ABP) syntax rule evaluator (`ContentBlockEngine`) with sub-millisecond LRU decision caching.
+   - Network interception in `shouldInterceptRequest`: blocks advertising/tracker requests with empty 200 responses.
+   - Strict media bypass: video segments (`.m3u8`, `.ts`, `.mpd`, `.m4s`, `.mp4`) and subtitles (`.vtt`, `.srt`) are permanently whitelisted.
+   - Pop-up and redirect suppression in `shouldOverrideUrlLoading` and `onCreateWindow`: blocks rogue app intents (`intent://`, `market://`) and unexpected window creation.
+   - Cookie privacy: restricts third-party tracking cookies via Android `CookieManager`.
+   - Source exceptions: allows per-source overrides when an authorized player requires specific scripts.
 3. **External Intent**:
    - Fires standard `ACTION_VIEW` intent with MIME type `video/*` allowing users to stream via VLC, Kodi, or external TV video players if preferred.
 
-## 3. Directory Layout in Repository
+## 3. Privacy & Content Blocking Subsystem
+
+```mermaid
+flowchart TD
+    subgraph PrivacyEngine ["com.nowshowing.tv.privacy"]
+        Engine["ContentBlockEngine\n(Domain, Path & Whitelist Evaluator)"]
+        FilterMgr["FilterListManager\n(Bundled EasyList + HTTPS Updater)"]
+        Prefs["ProtectionPreferences\n(Toggles & Source Exceptions)"]
+        Stats["BlockingStatistics\n(Local Atomic Counters)"]
+        Client["ProtectedWebViewClient\n(shouldInterceptRequest)"]
+        Popup["PopupProtection\n(WebChromeClient & onCreateWindow)"]
+    end
+
+    FilterMgr --> Engine
+    Client --> Engine
+    Client --> Prefs
+    Client --> Stats
+    Popup --> Prefs
+    Popup --> Stats
+```
+
+## 4. Directory Layout in Repository
 The Android TV project is self-contained in `android-tv/`:
 ```
 android-tv/

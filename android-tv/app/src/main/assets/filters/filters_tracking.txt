@@ -1,0 +1,52 @@
+! Title: NowShowing TV Baseline Tracker Blocking Rules
+! Description: Lightweight tracker, fingerprinting, and analytics blocking rules optimized for Android TV
+! Version: 1.0.0
+! Homepage: https://github.com/smile-plzz/NowShowing-Stream
+
+! --- Major Analytics & Trackers ---
+||google-analytics.com^
+||googletagmanager.com^
+||scorecardresearch.com^
+||quantserve.com^
+||hotjar.com^
+||statcounter.com^
+||yandex.ru/metrika^
+||mc.yandex.ru^
+||matomo.org^
+||segment.io^
+||mixpanel.com^
+||crazyegg.com^
+||chartbeat.com^
+||clicky.com^
+||newrelic.com^
+||nr-data.net^
+||optimizely.com^
+||mouseflow.com^
+||fullstory.com^
+||kissmetrics.com^
+
+! --- Telemetry & Fingerprinting Domains ---
+||fingerprintjs.com^
+||fpjs.io^
+||trackjs.com^
+||sentry.io^
+||bugsnag.com^
+||rollbar.com^
+||datadoghq.com^
+||amplitude.com^
+||branch.io^
+||adjust.com^
+||appsflyer.com^
+||kochava.com^
+||singular.net^
+
+! --- Behavioral Tracking & Beacon Keywords ---
+/beacon/track/*
+/telemetry/event/*
+*user_tracker*
+*fingerprint.js*
+*analytics.min.js*
+*track.php*
+/gtag/js*
+/ga.js*
+/analytics.js*

@@ -3,10 +3,11 @@ package com.nowshowing.tv.ui.player
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.nowshowing.tv.data.model.OmdbTitleDetail
 import com.nowshowing.tv.data.repository.MediaRepository
 import com.nowshowing.tv.domain.source.SourceRegistry
 import com.nowshowing.tv.domain.source.VideoSource
+import com.nowshowing.tv.privacy.BlockType
+import com.nowshowing.tv.privacy.ProtectionPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,8 @@ data class PlayerUiState(
     val currentSource: VideoSource = SourceRegistry.SOURCES.first(),
     val streamUrl: String = "",
     val isDirectMedia: Boolean = false,
+    val isProtectionExempt: Boolean = false,
+    val sessionBlockedCount: Int = 0,
     val showControls: Boolean = true,
     val showBlankRecoveryHint: Boolean = false,
     val isPlaying: Boolean = true,
@@ -33,6 +36,8 @@ data class PlayerUiState(
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = MediaRepository(application)
+    private val protectionPrefs = ProtectionPreferences(application)
+
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
@@ -53,6 +58,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             ) ?: ""
 
             val isDirect = url.endsWith(".mp4") || url.endsWith(".m3u8") || url.endsWith(".mpd")
+            val isExempt = protectionPrefs.isSourceExempt(prefSource.name)
 
             _uiState.value = PlayerUiState(
                 imdbId = imdbId,
@@ -64,7 +70,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 episode = episode,
                 currentSource = prefSource,
                 streamUrl = url,
-                isDirectMedia = isDirect
+                isDirectMedia = isDirect,
+                isProtectionExempt = isExempt
             )
 
             // Register playback initiation in Continue Watching
@@ -98,12 +105,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         ) ?: ""
 
         val isDirect = url.endsWith(".mp4") || url.endsWith(".m3u8") || url.endsWith(".mpd")
+        val isExempt = protectionPrefs.isSourceExempt(source.name)
 
         _uiState.value = _uiState.value.copy(
             currentSource = source,
             streamUrl = url,
             isDirectMedia = isDirect,
+            isProtectionExempt = isExempt,
+            sessionBlockedCount = 0,
             showBlankRecoveryHint = false
+        )
+    }
+
+    fun toggleSourceProtection() {
+        val srcName = _uiState.value.currentSource.name
+        val nowExempt = !_uiState.value.isProtectionExempt
+        protectionPrefs.setSourceExempt(srcName, nowExempt)
+
+        _uiState.value = _uiState.value.copy(
+            isProtectionExempt = nowExempt,
+            showBlankRecoveryHint = false
+        )
+
+        // Trigger reload with new policy
+        val currentUrl = _uiState.value.streamUrl
+        _uiState.value = _uiState.value.copy(streamUrl = "")
+        _uiState.value = _uiState.value.copy(streamUrl = currentUrl)
+    }
+
+    fun onItemBlocked(type: BlockType, url: String) {
+        _uiState.value = _uiState.value.copy(
+            sessionBlockedCount = _uiState.value.sessionBlockedCount + 1
         )
     }
 

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -141,6 +142,12 @@ fun TvTopBar(
                 icon = Icons.Default.Bookmark,
                 isSelected = currentRoute == "watchlist",
                 onClick = { onNavigate("watchlist") }
+            )
+            NavTabItem(
+                label = "Shields",
+                icon = Icons.Default.Security,
+                isSelected = currentRoute == "settings",
+                onClick = { onNavigate("settings") }
             )
         }
     }

@@ -1,0 +1,96 @@
+! Title: NowShowing TV Baseline Adblock Rules
+! Description: Lightweight, high-impact ad and pop-up blocking rules optimized for Android TV video embeds
+! Version: 1.0.0
+! Homepage: https://github.com/smile-plzz/NowShowing-Stream
+
+! --- Common Ad Networks & Video Ad Injectors ---
+||doubleclick.net^
+||googlesyndication.com^
+||googleadservices.com^
+||adnxs.com^
+||adservice.google.com^
+||pagead2.googlesyndication.com^
+||adroll.com^
+||adsystem.com^
+||adservice.com^
+||advertising.com^
+||admob.com^
+||outbrain.com^
+||taboola.com^
+||revcontent.com^
+||mgid.com^
+||popads.net^
+||popcash.net^
+||propellerads.com^
+||adsterra.com^
+||exoclick.com^
+||juicyads.com^
+||trafficjunky.com^
+||adxcore.com^
+||ad-delivery.net^
+||adtrue.com^
+||yllix.com^
+||clickadu.com^
+||bidvertiser.com^
+||a-ads.com^
+||richpush.co^
+||pushassist.com^
+||adkeeper.co.uk^
+||infolinks.com^
+||monetag.com^
+||hilltopads.com^
+||vidoomy.com^
+||streamtape.com/ad^
+||adsupply.com^
+||zergnet.com^
+
+! --- Aggressive Pop-up & Redirect Domains frequently found in stream embeds ---
+||deloton.com^
+||go.mobtrks.com^
+||onclickbright.com^
+||ad-maven.com^
+||admaven.com^
+||serving-sys.com^
+||tubecorporate.com^
+||creativecdn.com^
+||trackvoluum.com^
+||smartadserver.com^
+||adrecover.com^
+||clck.ru/ads^
+||cpmstar.com^
+||adversal.com^
+||buysellads.com^
+
+! --- URL Path & Keyword Rules ---
+/ad/banner/*
+/ads/vast/*
+/adservice/*
+*popunder*
+*popup_ad*
+*banner_ad*
+*interstitial*
+/videotag/*
+/vast_tag/*
+/ad-provider/*
+/sponsored/*
+*pre-roll-ad*
+*preroll*
+/ad_unit/*
+
+! --- Whitelist Exceptions for Core Video Streaming CDNs & Protocols ---
+@@||streamamg.com^
+@@||akamaihd.net^
+@@||cloudfront.net^
+@@||fastly.net^
+@@||cloudflare.com^
+@@||vidsrc.to^
+@@||autoembed.co^
+@@||2embed.cc^
+@@||2embed.stream^
+@@||vidsrc.icu^
+@@||vidsrc.xyz^
+@@||v2.vidsrc.me^
+@@||moviesapi.club^
+@@||multiembed.mov^
+@@||embed.su^
+@@||vidsrc.mov^

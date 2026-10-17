@@ -25,6 +25,8 @@ import com.nowshowing.tv.ui.player.PlayerScreen
 import com.nowshowing.tv.ui.player.PlayerViewModel
 import com.nowshowing.tv.ui.search.SearchScreen
 import com.nowshowing.tv.ui.search.SearchViewModel
+import com.nowshowing.tv.ui.settings.SettingsScreen
+import com.nowshowing.tv.ui.settings.SettingsViewModel
 import com.nowshowing.tv.ui.theme.NowShowingTheme
 
 class MainActivity : ComponentActivity() {
@@ -147,6 +149,20 @@ class MainActivity : ComponentActivity() {
                             },
                             onTitleClick = { imdbId, type ->
                                 navController.navigate(Screen.Details.createRoute(imdbId, type))
+                            }
+                        )
+                    }
+
+                    // Privacy & Content Blocking Settings Screen
+                    composable(Screen.Settings.route) {
+                        val settingsVm: SettingsViewModel = viewModel()
+                        SettingsScreen(
+                            viewModel = settingsVm,
+                            onNavigate = { route ->
+                                navController.navigate(route) {
+                                    popUpTo(Screen.Home.route)
+                                    launchSingleTop = true
+                                }
                             }
                         )
                     }

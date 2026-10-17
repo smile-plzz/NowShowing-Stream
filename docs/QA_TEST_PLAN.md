@@ -68,3 +68,14 @@
 |---|---|---|---|
 | **TC-PER-01** | Cold App Restart | Add items to Watchlist, kill app process, relaunch app. | Watchlist items load instantly from local Room SQLite database. |
 | **TC-PER-02** | Low-Memory Stability | Run app continuously for 30 minutes across multiple browsing screens. | Heap remains bounded (<120MB); no `OutOfMemoryError` due to Coil bitmap pooling. |
+
+### 2.9. Native Privacy & Content Blocking
+| Test Case ID | Objective | Expected Result | Pass/Fail Criteria |
+|---|---|---|---|
+| **TC-PRIV-01** | Ad Network Interception | Launch embed player on source with aggressive banner/pop ads (e.g. `doubleclick.net`, `popads.net`). | Ad network HTTP/HTTPS requests intercepted via `shouldInterceptRequest`; empty response returned. No ad overlays or broken layout. |
+| **TC-PRIV-02** | Analytics & Tracker Interception | Verify telemetry domains (`google-analytics.com`, `hotjar.com`) during playback. | Requests blocked; blocked tracker counter in `BlockingStatistics` increments accordingly. |
+| **TC-PRIV-03** | Legitimate Media Stream Bypass | Play HLS (.m3u8, .ts), DASH (.mpd), and MP4 streams through WebView player. | Media stream fragments and manifests unconditionally bypass rule evaluator. Playback starts smoothly without CDN chunk drops. |
+| **TC-PRIV-04** | Pop-up & Unsolicited Window Suppression | Trigger embed player button that attempts `window.open` or deceptive redirect. | Pop-up suppressed by `PopupProtection` WebChromeClient; `onCreateWindow` returns false; blocked popup counter increments. |
+| **TC-PRIV-05** | Per-Source Exemption Override | Open Player HUD -> click Shields button or disable shields in Settings for current source. | WebView reloads with filtering disabled for that source domain. Shields HUD indicates "OFF (Disabled for this source)". |
+| **TC-PRIV-06** | Privacy Settings & Statistics Persistence | In Settings screen, toggle Ad/Tracker/Popup blocking or click "Reset Statistics". | Toggle states persist across app restarts in SharedPreferences; local counters reset to zero cleanly. |
+

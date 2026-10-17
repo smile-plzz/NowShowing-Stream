@@ -41,3 +41,14 @@ Use this checklist before distributing a new release build of NowShowing TV.
 - [ ] **Continue Watching Persistence**: Active titles persist with accurate progress and episode markers.
 - [ ] **OMDb Cache**: In-memory and SQLite cache operate to avoid hitting daily API limits.
 - [ ] **Network Outage Grace**: App handles network disconnect without crashing; displays friendly retry state.
+
+## 7. Privacy & Content Blocking Verification
+- [ ] **Bundled Filter Assets**: Verify `filters_adblock.txt` and `filters_tracking.txt` are bundled in `assets/filters/` and load within <20ms on startup.
+- [ ] **Network Interception Active**: Confirm `ProtectedWebViewClient` intercepts ad and tracker requests without breaking embed player video decoders.
+- [ ] **Media Fragment Exemption**: Verify `.m3u8`, `.ts`, `.mpd`, `.m4s`, and `.mp4` requests unconditionally bypass blocking.
+- [ ] **Pop-up Suppression**: Verify `PopupProtection` suppresses unsolicited `window.open` calls and dialogs.
+- [ ] **Player HUD Shield Badge**: Confirm HUD displays active shield status (`🛡️ Shields: ON (N blocked)`) and remote toggle functions properly.
+- [ ] **Settings Screen Toggles**: Verify user can toggle Ad Blocking, Tracker Blocking, Pop-up Blocking, and Third-Party Cookie restrictions with persistent state.
+- [ ] **Filter List Online Update**: Verify "Update Filter Rules" button in Settings downloads and saves updated rulesets when network is available without crashing when offline.
+- [ ] **Local-Only Telemetry**: Verify zero remote telemetry; all blocked counts remain strictly in local memory and private app storage.
+

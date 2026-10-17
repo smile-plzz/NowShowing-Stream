@@ -4,10 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.view.ViewGroup
-import android.webkit.WebChromeClient
+import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -31,8 +30,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -59,6 +59,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.nowshowing.tv.domain.source.SourceRegistry
+import com.nowshowing.tv.privacy.PopupProtection
+import com.nowshowing.tv.privacy.ProtectedWebViewClient
 import com.nowshowing.tv.ui.theme.AccentCyan
 import com.nowshowing.tv.ui.theme.AccentGold
 import com.nowshowing.tv.ui.theme.FocusBorder
@@ -113,9 +115,9 @@ fun PlayerScreen(
             .background(Color.Black)
             .clickable { showHud = !showHud }
     ) {
-        // Player Surface: Tier 1 (Media3) vs Tier 2 (TV-Optimized WebView)
+        // Player Surface: Tier 1 (Media3) vs Tier 2 (TV-Optimized Protected WebView)
         if (uiState.isDirectMedia && uiState.streamUrl.isNotBlank()) {
-            // Media3 ExoPlayer Engine
+            // Media3 ExoPlayer Engine (direct streams)
             val exoPlayer = remember(uiState.streamUrl) {
                 ExoPlayer.Builder(context).build().apply {
                     setMediaItem(MediaItem.fromUri(uiState.streamUrl))
@@ -145,7 +147,7 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else if (uiState.streamUrl.isNotBlank()) {
-            // TV-Optimized WebView Embed Player Engine
+            // TV-Optimized Protected WebView Engine with Built-in Privacy Shields
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -156,23 +158,33 @@ fun PlayerScreen(
                         settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
-                            databaseEnabled = true
                             mediaPlaybackRequiresUserGesture = false
                             loadsImagesAutomatically = true
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                             userAgentString = "Mozilla/5.0 (Linux; Android 14; BRAVIA 4K Build/URB1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                         }
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
+
+                        // Block third-party tracking cookies
+                        CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
+
+                        // Native Content, Tracker & Pop-up Protection
+                        webViewClient = ProtectedWebViewClient(
+                            context = ctx,
+                            sourceName = uiState.currentSource.name,
+                            onBlockedEvent = { type, url ->
+                                viewModel.onItemBlocked(type, url)
                             }
-                        }
-                        webChromeClient = WebChromeClient()
+                        )
+                        webChromeClient = PopupProtection(
+                            context = ctx,
+                            sourceName = uiState.currentSource.name
+                        )
+
                         loadUrl(uiState.streamUrl)
                     }
                 },
                 update = { webView ->
-                    if (webView.url != uiState.streamUrl) {
+                    if (webView.url != uiState.streamUrl && uiState.streamUrl.isNotBlank()) {
                         webView.loadUrl(uiState.streamUrl)
                     }
                 },
@@ -201,7 +213,7 @@ fun PlayerScreen(
                     )
                     .padding(32.dp)
             ) {
-                // Top Row: Title, Back button, Source info
+                // Top Row: Title, Back button, Source info, Shields status
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -211,7 +223,7 @@ fun PlayerScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PlayerIconButton(
-                            icon = Icons.Default.ArrowBack,
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDesc = "Back",
                             onClick = onBack
                         )
@@ -232,8 +244,24 @@ fun PlayerScreen(
                         }
                     }
 
-                    // Action buttons: Switch Source, Open External
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Action buttons: Shields Toggle, Switch Source, Open External
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Privacy Shields Toggle Pill
+                        val shieldLabel = if (uiState.isProtectionExempt) {
+                            "Shields: OFF"
+                        } else if (uiState.sessionBlockedCount > 0) {
+                            "Shields: ON (${uiState.sessionBlockedCount} blocked)"
+                        } else {
+                            "Shields: ON"
+                        }
+
+                        PlayerActionButton(
+                            label = shieldLabel,
+                            icon = Icons.Default.Security,
+                            isAccent = !uiState.isProtectionExempt,
+                            onClick = { viewModel.toggleSourceProtection() }
+                        )
+
                         PlayerActionButton(
                             label = "Source: ${uiState.currentSource.name}",
                             icon = Icons.Default.SwapHoriz,
@@ -241,8 +269,8 @@ fun PlayerScreen(
                         )
 
                         PlayerActionButton(
-                            label = "Open in External Player",
-                            icon = Icons.Default.OpenInNew,
+                            label = "External Player",
+                            icon = Icons.AutoMirrored.Filled.OpenInNew,
                             onClick = {
                                 if (uiState.streamUrl.isNotBlank()) {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.streamUrl)).apply {
@@ -252,7 +280,6 @@ fun PlayerScreen(
                                     try {
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
-                                        // Fallback to web browser intent
                                         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uiState.streamUrl)).apply {
                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         }
@@ -271,27 +298,37 @@ fun PlayerScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 40.dp)
+                    .padding(bottom = 36.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(SurfaceDark.copy(alpha = 0.95f))
+                    .background(SurfaceDark.copy(alpha = 0.96f))
                     .border(1.5.dp, AccentGold, RoundedCornerShape(12.dp))
                     .padding(horizontal = 24.dp, vertical = 14.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "⚠️ Screen blank or stream not loading?",
+                        text = "⚠️ Screen blank or video not loading?",
                         color = AccentGold,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
+
+                    if (!uiState.isProtectionExempt) {
+                        PlayerActionButton(
+                            label = "Disable Shields for this source",
+                            icon = Icons.Default.Security,
+                            onClick = { viewModel.toggleSourceProtection() }
+                        )
+                    }
+
                     PlayerActionButton(
                         label = "Switch to ${SourceRegistry.getNextSource(uiState.currentSource).name}",
                         icon = Icons.Default.SwapHoriz,
                         onClick = { viewModel.switchNextSource() }
                     )
+
                     PlayerActionButton(
                         label = "Dismiss",
                         icon = null,
@@ -339,10 +376,23 @@ private fun PlayerIconButton(
 private fun PlayerActionButton(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    isAccent: Boolean = false,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+
+    val bg = when {
+        isFocused -> FocusBorder
+        isAccent -> AccentCyan.copy(alpha = 0.2f)
+        else -> SurfaceDark
+    }
+
+    val textColor = when {
+        isFocused -> Color.Black
+        isAccent -> AccentCyan
+        else -> TextPrimary
+    }
 
     Row(
         modifier = Modifier
@@ -352,29 +402,29 @@ private fun PlayerActionButton(
                 spotColor = if (isFocused) FocusGlow else Color.Transparent
             )
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isFocused) FocusBorder else SurfaceDark)
+            .background(bg)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
-                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.12f),
+                color = if (isFocused) Color.White else if (isAccent) AccentCyan.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(8.dp)
             )
             .focusable(interactionSource = interactionSource)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 9.dp),
+            .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isFocused) Color.Black else TextPrimary,
+                tint = textColor,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
         }
         Text(
             text = label,
-            color = if (isFocused) Color.Black else TextPrimary,
+            color = textColor,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
