@@ -7,21 +7,163 @@ object SourceRegistry {
 
     private const val PREFS_NAME = "nowshowing_source_prefs"
     private const val KEY_PREFERRED_SOURCE = "preferred_source_name"
+    private const val KEY_CUSTOM_STREAM_URL = "custom_direct_stream_url"
 
-    val SOURCES = listOf(
-        VideoSource(name = "VidSrc.to", url = "https://vidsrc.to/embed/movie/", tvUrl = "https://vidsrc.to/embed/tv/"),
-        VideoSource(name = "AutoEmbed", url = "https://autoembed.co/movie/imdb/", tvUrl = "https://autoembed.co/tv/imdb/"),
-        VideoSource(name = "2Embed", url = "https://www.2embed.cc/embed/", tvUrl = "https://www.2embed.cc/embedtv/"),
-        VideoSource(name = "2Embed.stream", url = "https://www.2embed.stream/embed/movie/", tvUrl = "https://www.2embed.stream/embed/tv/"),
-        VideoSource(name = "VidSrc.icu", url = "https://vidsrc.icu/embed/movie/", tvUrl = "https://vidsrc.icu/embed/tv/"),
-        VideoSource(name = "VidSrc.xyz", url = "https://vidsrc.xyz/embed/movie/", tvUrl = "https://vidsrc.xyz/embed/tv/"),
-        VideoSource(name = "VidSrc.me", url = "https://v2.vidsrc.me/embed/", tvUrl = "https://v2.vidsrc.me/embed/"),
-        VideoSource(name = "MoviesAPI", url = "https://moviesapi.club/movie/", tvUrl = "https://moviesapi.club/tv/"),
-        VideoSource(name = "MultiEmbed", url = "https://multiembed.mov/?video_id=", tvUrl = "https://multiembed.mov/?video_id="),
-        VideoSource(name = "EmbedSu", url = "https://embed.su/embed/movie/", tvUrl = "https://embed.su/embed/tv/"),
-        VideoSource(name = "VidSrc.mov", url = "https://vidsrc.mov/embed/movie/", tvUrl = "https://vidsrc.mov/embed/tv/")
+    // Primary Native-Playable Media Sources (Verified HLS, DASH, and MP4 direct streams)
+    val NATIVE_SOURCES = listOf(
+        VideoSource(
+            id = "native_mux_hls",
+            name = "Native HLS (Mux Stream)",
+            type = SourceType.NATIVE_STREAM,
+            directStreamUrl = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+            description = "Multi-bitrate adaptive HLS stream with subtitle tracks"
+        ),
+        VideoSource(
+            id = "native_tears_hls",
+            name = "Tears of Steel (HLS Demo)",
+            type = SourceType.AUTHORIZED_SAMPLE,
+            directStreamUrl = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+            description = "High-definition 1080p HLS stream via Unified Streaming"
+        ),
+        VideoSource(
+            id = "native_bbb_mp4",
+            name = "Big Buck Bunny (MP4)",
+            type = SourceType.AUTHORIZED_SAMPLE,
+            directStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            description = "Full HD progressive MP4 stream (Blender Open Movie)"
+        ),
+        VideoSource(
+            id = "native_sintel_mp4",
+            name = "Sintel (MP4)",
+            type = SourceType.AUTHORIZED_SAMPLE,
+            directStreamUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+            description = "High-definition MP4 stream (Blender Foundation)"
+        )
     )
 
+    // Legacy Web-Only Embed Providers (Strictly Incompatible with Native TV Playback)
+    val UNSUPPORTED_WEB_SOURCES = listOf(
+        VideoSource(
+            id = "vidsrc_to",
+            name = "VidSrc.to",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://vidsrc.to/embed/movie/",
+            tvUrl = "https://vidsrc.to/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "autoembed",
+            name = "AutoEmbed",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://autoembed.co/movie/imdb/",
+            tvUrl = "https://autoembed.co/tv/imdb/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "twoembed",
+            name = "2Embed",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://www.2embed.cc/embed/",
+            tvUrl = "https://www.2embed.cc/embedtv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "twoembed_stream",
+            name = "2Embed.stream",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://www.2embed.stream/embed/movie/",
+            tvUrl = "https://www.2embed.stream/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "vidsrc_icu",
+            name = "VidSrc.icu",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://vidsrc.icu/embed/movie/",
+            tvUrl = "https://vidsrc.icu/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "vidsrc_xyz",
+            name = "VidSrc.xyz",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://vidsrc.xyz/embed/movie/",
+            tvUrl = "https://vidsrc.xyz/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "vidsrc_me",
+            name = "VidSrc.me",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://v2.vidsrc.me/embed/",
+            tvUrl = "https://v2.vidsrc.me/embed/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "moviesapi",
+            name = "MoviesAPI",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://moviesapi.club/movie/",
+            tvUrl = "https://moviesapi.club/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "multiembed",
+            name = "MultiEmbed",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://multiembed.mov/?video_id=",
+            tvUrl = "https://multiembed.mov/?video_id=",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "embedsu",
+            name = "EmbedSu",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://embed.su/embed/movie/",
+            tvUrl = "https://embed.su/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        ),
+        VideoSource(
+            id = "vidsrc_mov",
+            name = "VidSrc.mov",
+            type = SourceType.UNSUPPORTED_WEB_EMBED,
+            url = "https://vidsrc.mov/embed/movie/",
+            tvUrl = "https://vidsrc.mov/embed/tv/",
+            description = "Third-party web embed; does not provide direct media streams"
+        )
+    )
+
+    // Complete registry combining native and classified legacy sources
+    val SOURCES = NATIVE_SOURCES + UNSUPPORTED_WEB_SOURCES
+
+    fun getNativeCompatibleSources(): List<VideoSource> {
+        return SOURCES.filter { it.isNativeCompatible }
+    }
+
+    fun isNativeCompatible(source: VideoSource): Boolean {
+        return source.isNativeCompatible
+    }
+
+    /**
+     * Resolves direct media stream URL for native-compatible sources.
+     * Returns null for web-only embeds to prevent iframe/browser rendering.
+     */
+    fun buildNativeMediaUrl(
+        source: VideoSource,
+        imdbId: String,
+        season: Int = 1,
+        episode: Int = 1,
+        isSeries: Boolean = false
+    ): String? {
+        if (!source.isNativeCompatible) {
+            return null
+        }
+        return source.directStreamUrl
+    }
+
+    /**
+     * Legacy URL builder retained for reference and external compatibility checks.
+     */
     fun buildVideoUrl(
         source: VideoSource,
         imdbId: String,
@@ -29,6 +171,9 @@ object SourceRegistry {
         episode: Int = 1,
         isSeries: Boolean = false
     ): String? {
+        if (source.isNativeCompatible) {
+            return source.directStreamUrl
+        }
         if (isSeries) {
             val base = source.tvUrl ?: return null
             return when {
@@ -54,12 +199,23 @@ object SourceRegistry {
     }
 
     fun getPreferredSource(context: Context): VideoSource {
-        val name = getPrefs(context).getString(KEY_PREFERRED_SOURCE, "VidSrc.to")
-        return SOURCES.firstOrNull { it.name == name } ?: SOURCES.first()
+        val defaultName = NATIVE_SOURCES.first().name
+        val name = getPrefs(context).getString(KEY_PREFERRED_SOURCE, defaultName)
+        return SOURCES.firstOrNull { it.name == name } ?: NATIVE_SOURCES.first()
     }
 
     fun setPreferredSource(context: Context, sourceName: String) {
         getPrefs(context).edit().putString(KEY_PREFERRED_SOURCE, sourceName).apply()
+    }
+
+    fun getNextCompatibleSource(currentSource: VideoSource): VideoSource {
+        val compatible = getNativeCompatibleSources()
+        if (compatible.isEmpty()) return currentSource
+        val idx = compatible.indexOfFirst { it.name == currentSource.name }
+        if (idx == -1 || idx >= compatible.lastIndex) {
+            return compatible.first()
+        }
+        return compatible[idx + 1]
     }
 
     fun getNextSource(currentSource: VideoSource): VideoSource {

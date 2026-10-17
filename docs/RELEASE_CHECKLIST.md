@@ -29,12 +29,15 @@ Use this checklist before distributing a new release build of NowShowing TV.
 - [ ] **Search Engine**: On-screen keyboard operates smoothly; search results load with pagination.
 - [ ] **TV Show Seasons**: TV shows display accurate season chips and episode lists with titles and synopses.
 
-## 5. Playback Stability
-- [ ] **Multi-Source Selector**: All 11 video sources accessible via source switcher overlay.
-- [ ] **WebView Hardware Acceleration**: Video embeds render smoothly without UI freeze.
-- [ ] **One-Click Fallback**: Blank player detector properly prompts to rotate to next source.
-- [ ] **External Intent**: "Open in External Player" handoff works if third-party players (e.g., VLC) are installed.
-- [ ] **Playback Resume**: True playback position persisted to Continue Watching for Media3 playback.
+## 5. Native-Only Playback Stability & Redirect Isolation
+- [ ] **100% Native Media3 Surface**: Video plays exclusively through AndroidX Media3 / ExoPlayer. Zero WebViews present in the playback screen.
+- [ ] **Web-Embed Rejection**: Selecting an unsupported web embed (VidSrc, AutoEmbed) gracefully displays the Incompatible Source card (*"Native playback is unavailable for this source. Try another source."*).
+- [ ] **In-Player Source Switching**: Switching between native streams works smoothly via the TV source modal dialog without crashing.
+- [ ] **Remote D-Pad Transport**: Up/Down toggles HUD, Left/Right seeks 10s with visual indicator, Center/OK toggles Play/Pause.
+- [ ] **Series Progression**: Previous and Next Episode buttons advance or decrement episodes properly.
+- [ ] **Auto-Next Episode Prompt**: 30-second prompt appears non-intrusively and triggers next episode upon clicking "Play Now".
+- [ ] **Redirect Loop & Protocol Defense**: Insecure HTTP to non-local hosts and redirects exceeding 5 hops are blocked safely.
+- [ ] **Playback Resume Persistence**: Millisecond playback position correctly recorded and restored from Room database.
 
 ## 6. Persistence & Offline Resilience
 - [ ] **Watchlist Persistence**: Items added to Watchlist remain saved across process death and reboot.

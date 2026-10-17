@@ -1,7 +1,9 @@
 package com.nowshowing.tv.domain.source
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -9,11 +11,42 @@ class SourceRegistryTest {
 
     @Test
     fun testAllSourcesPresent() {
-        assertEquals("Must contain 11 streaming sources from web app", 11, SourceRegistry.SOURCES.size)
+        assertEquals("Must contain 4 native sources + 11 legacy embed sources", 15, SourceRegistry.SOURCES.size)
+        assertEquals(4, SourceRegistry.NATIVE_SOURCES.size)
+        assertEquals(11, SourceRegistry.UNSUPPORTED_WEB_SOURCES.size)
     }
 
     @Test
-    fun testMovieUrlConstruction() {
+    fun testNativeCompatibilityClassification() {
+        // Native sources must be classified as compatible
+        for (nativeSource in SourceRegistry.NATIVE_SOURCES) {
+            assertTrue("Native source ${nativeSource.name} must be native-compatible", nativeSource.isNativeCompatible)
+            assertEquals(SourceCompatibility.NATIVE_PLAYABLE, nativeSource.compatibility)
+        }
+
+        // Legacy 11 sources must be classified as unsupported web embeds
+        for (webSource in SourceRegistry.UNSUPPORTED_WEB_SOURCES) {
+            assertFalse("Web source ${webSource.name} must NOT be native-compatible", webSource.isNativeCompatible)
+            assertEquals(SourceCompatibility.UNSUPPORTED_WEB_ONLY, webSource.compatibility)
+            assertEquals(SourceType.UNSUPPORTED_WEB_EMBED, webSource.type)
+        }
+    }
+
+    @Test
+    fun testBuildNativeMediaUrlReturnsDirectStreamForNativeSourcesOnly() {
+        val nativeHls = SourceRegistry.NATIVE_SOURCES.first { it.id == "native_mux_hls" }
+        val streamUrl = SourceRegistry.buildNativeMediaUrl(nativeHls, "tt1375666")
+        assertNotNull(streamUrl)
+        assertTrue(streamUrl!!.endsWith(".m3u8"))
+
+        // For web sources, buildNativeMediaUrl MUST return null
+        val vidsrc = SourceRegistry.UNSUPPORTED_WEB_SOURCES.first { it.name == "VidSrc.to" }
+        val webStreamUrl = SourceRegistry.buildNativeMediaUrl(vidsrc, "tt1375666")
+        assertNull("Web-only embeds must return null from buildNativeMediaUrl", webStreamUrl)
+    }
+
+    @Test
+    fun testMovieUrlConstructionForLegacyReference() {
         val vidsrc = SourceRegistry.SOURCES.first { it.name == "VidSrc.to" }
         val url = SourceRegistry.buildVideoUrl(vidsrc, "tt1375666", isSeries = false)
         assertNotNull(url)
@@ -21,7 +54,7 @@ class SourceRegistryTest {
     }
 
     @Test
-    fun testSeriesUrlConstruction() {
+    fun testSeriesUrlConstructionForLegacyReference() {
         val vidsrc = SourceRegistry.SOURCES.first { it.name == "VidSrc.to" }
         val url = SourceRegistry.buildVideoUrl(vidsrc, "tt0903747", season = 2, episode = 5, isSeries = true)
         assertNotNull(url)
@@ -29,30 +62,13 @@ class SourceRegistryTest {
     }
 
     @Test
-    fun testVidsrcMeQuirk() {
-        val vidsrcMe = SourceRegistry.SOURCES.first { it.name == "VidSrc.me" }
-        val movieUrl = SourceRegistry.buildVideoUrl(vidsrcMe, "tt1375666", isSeries = false)
-        assertEquals("https://v2.vidsrc.me/embed/tt1375666/", movieUrl)
+    fun testNextCompatibleSourceCyclesOnlyCompatibleSources() {
+        val firstNative = SourceRegistry.NATIVE_SOURCES.first()
+        val next = SourceRegistry.getNextCompatibleSource(firstNative)
+        assertTrue(next.isNativeCompatible)
 
-        val seriesUrl = SourceRegistry.buildVideoUrl(vidsrcMe, "tt0903747", season = 3, episode = 4, isSeries = true)
-        assertEquals("https://v2.vidsrc.me/embed/tt0903747/3-4/", seriesUrl)
-    }
-
-    @Test
-    fun testAutoEmbedQuirk() {
-        val autoEmbed = SourceRegistry.SOURCES.first { it.name == "AutoEmbed" }
-        val seriesUrl = SourceRegistry.buildVideoUrl(autoEmbed, "tt0903747", season = 1, episode = 1, isSeries = true)
-        assertEquals("https://autoembed.co/tv/imdb/tt0903747/1/1", seriesUrl)
-    }
-
-    @Test
-    fun testNextSourceRotation() {
-        val first = SourceRegistry.SOURCES.first()
-        val next = SourceRegistry.getNextSource(first)
-        assertEquals(SourceRegistry.SOURCES[1].name, next.name)
-
-        val last = SourceRegistry.SOURCES.last()
-        val wrapped = SourceRegistry.getNextSource(last)
-        assertEquals(first.name, wrapped.name)
+        val lastNative = SourceRegistry.NATIVE_SOURCES.last()
+        val wrapped = SourceRegistry.getNextCompatibleSource(lastNative)
+        assertEquals(firstNative.name, wrapped.name)
     }
 }

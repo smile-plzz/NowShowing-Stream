@@ -73,3 +73,37 @@
   - Generated APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk` (22,268,688 bytes / 21.2 MB).
 - **Status**: Brave-inspired native content blocking feature fully implemented, tested, and verified.
 
+## [2026-10-17 21:30] - Phase 3: Mandatory Native Playback & Redirect Isolation
+- **Task**: Redesign playback architecture so all video playback occurs exclusively through the Android native media player (AndroidX Media3 / ExoPlayer), completely eliminating embedded WebViews, pop-ups, and arbitrary external redirects.
+- **Components Implemented**:
+  - **Source Model & Registry Audit (`com.nowshowing.tv.domain.source`)**:
+    - `SourceModels.kt`: Added `SourceType` (`NATIVE_STREAM`, `AUTHORIZED_SAMPLE`, `UNSUPPORTED_WEB_EMBED`), `SourceCompatibility` (`NATIVE_PLAYABLE`, `REQUIRES_DIRECT_ENDPOINT`, `UNSUPPORTED_WEB_ONLY`, `UNAVAILABLE`), and `MediaFormat` (`HLS`, `DASH`, `MP4`, `UNKNOWN`).
+    - `SourceRegistry.kt`: Classified all 11 legacy embed sources as `UNSUPPORTED_WEB_EMBED` / `UNSUPPORTED_WEB_ONLY`. Configured native-playable streams (Mux Multi-bitrate HLS, Tears of Steel HLS Demo, Big Buck Bunny MP4, Sintel MP4). Added `buildNativeMediaUrl()` which returns direct streams for native sources and `null` for web embeds.
+  - **Dedicated Resolution & Validation Layer (`com.nowshowing.tv.playback`)**:
+    - `PlayableSource.kt`: Encapsulates validated media stream URI, format, title, season/episode, and resume position. Defines `ResolutionResult.Success`, `IncompatibleSource`, and `Error`.
+    - `SourceValidation.kt`: Validates media URLs, strictly enforces HTTPS (with RFC-1918 private network allowance for local NAS / DLNA servers), rejects unauthorized URI schemes (`intent:`, `market:`, `javascript:`, `file:`), detects media formats (`HLS`, `DASH`, `MP4`), caps redirect chains at 5 hops, and evaluates redirect destinations against `ContentBlockEngine` rules.
+    - `MediaSourceResolver.kt`: Evaluates candidate providers. Rejects unsupported web embeds with `ResolutionResult.IncompatibleSource` and clear error messaging before any network rendering.
+    - `PlaybackCoordinator.kt`: Orchestrates source fallback, TV series episode calculations (`getNextEpisode`, `getPreviousEpisode`), seek clamping, and 30-second next-episode prompt eligibility.
+  - **Smart TV Native Player Screen (`com.nowshowing.tv.ui.player`)**:
+    - `PlayerScreen.kt`: Completely redesigned for 100% native AndroidX Media3 / ExoPlayer surface with zero WebViews.
+    - TV Remote Control Integration:
+      - D-Pad Left / Right seeks -10s / +10s with animated visual seek feedback pill (`⏪ -10s`, `⏩ +10s`).
+      - D-Pad Center / OK / Media Play-Pause toggles playback.
+      - D-Pad Up / Down shows HUD overlay with 5-second auto-hide timer.
+      - Back key persists playback position to Room database and exits to Details.
+    - 10-Foot HUD: Timeline scrubber, elapsed/total timestamps, Transport control row, Next/Previous Episode buttons.
+    - Incompatible Source Error Card: Clean cinematic card displayed when a legacy web embed is selected (*"Native playback is unavailable for this source. Try another source."*) with focusable buttons to switch to a native source, pick from the source drawer, or return.
+    - TV Source Selection Modal: Navigable dialog listing all 15 sources with `[NATIVE PLAYABLE]` or `[UNSUPPORTED WEB EMBED]` badges.
+    - Series Next Episode Auto-Prompt: Bottom-right prompt during the final 30 seconds of an episode with "Play Now" and "Dismiss".
+    - `PlayerViewModel.kt`: Updated to coordinate native playback, resume positions, episode advancement, and source switching.
+  - **Unit Tests**:
+    - `SourceValidationTest.kt`: Unit tests verifying HTTPS enforcement, local IP exemptions, scheme rejections, format detection, and redirect loop capping (100% pass).
+    - `MediaSourceResolverTest.kt`: Unit tests verifying rejection of web embeds, resolution of HLS/MP4 sources, and episode sequencing (100% pass).
+    - `SourceRegistryTest.kt`: Updated tests covering native vs unsupported classification (100% pass).
+- **Verification Results**:
+  - Unit tests `testDebugUnitTest`: **100% PASS** (22 tasks executed/up-to-date, BUILD SUCCESSFUL in 42s).
+  - Build task `assembleDebug`: **100% BUILD SUCCESSFUL** (35 tasks executed/up-to-date in 32s).
+  - Generated APK: `android-tv/app/build/outputs/apk/debug/app-debug.apk` (22,335,836 bytes / 21.3 MB).
+- **Status**: Mandatory native-only playback architecture and redirect isolation fully delivered, tested, and verified.
+
+

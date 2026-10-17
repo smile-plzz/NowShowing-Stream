@@ -5,6 +5,31 @@ All notable changes to the NowShowing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-17
+
+### Added
+- **Mandatory Native Playback Engine (`com.nowshowing.tv.playback`)**:
+  - Exclusive video playback powered by AndroidX Media3 / ExoPlayer with complete removal of embedded WebViews, iframe players, and browser pop-ups.
+  - Native hardware-accelerated playback for HLS (`.m3u8`), MPEG-DASH (`.mpd`), and progressive MP4 streams.
+  - Dedicated Media Source Resolution Layer (`MediaSourceResolver.kt` & `PlayableSource.kt`) evaluating configured providers prior to playback.
+  - Incompatible Web Embed Rejection: All 11 legacy embed sources are recognized and safely rejected with an informative TV error card (*"Native playback is unavailable for this source. Try another source."*).
+  - Protocol & Redirect Isolation (`SourceValidation.kt`): Enforces HTTPS (with local network RFC-1918 exemptions), blocks unauthorized URI schemes (`intent:`, `market:`, `javascript:`, `file:`), caps redirect chains at 5 hops, and filters redirect destinations against ad/tracker rules.
+  - Playback Coordination (`PlaybackCoordinator.kt`): Handles source fallbacks, TV series previous/next episode sequencing, and 30-second next-episode prompt eligibility.
+  - 10-Foot Remote-Controlled TV HUD (`PlayerScreen.kt`):
+    - D-pad Left/Right seek (-10s / +10s) with animated visual feedback pills (`⏪ -10s`, `⏩ +10s`).
+    - D-pad Center / OK / Media Play-Pause toggle.
+    - Up/Down HUD overlay with auto-hide timer.
+    - Scrubber timeline, elapsed/total duration, and series navigation.
+    - TV Source Selection dialog displaying all 15 sources with `[NATIVE PLAYABLE]` or `[UNSUPPORTED WEB EMBED]` badges.
+    - Automatic next-episode prompt in the lower right during the final 30 seconds of an episode.
+- **Unit Test Suite Expansion**:
+  - `SourceValidationTest.kt`: Testing protocol enforcement, local IP exemptions, media format detection, and redirect loop capping.
+  - `MediaSourceResolverTest.kt`: Testing rejection of unsupported web embeds, resolution of HLS/MP4 streams, and episode sequencing.
+  - `SourceRegistryTest.kt`: Updated with native source classification.
+- **Documentation Suite Updates**:
+  - Updated `docs/PLAYBACK_COMPATIBILITY.md` with complete 4-tier audit table (Native-playable vs Unsupported web-only embed).
+  - Updated `docs/ANDROID_TV_PRD.md`, `docs/ARCHITECTURE.md`, `docs/QA_TEST_PLAN.md`, and `docs/RELEASE_CHECKLIST.md`.
+
 ## [1.1.0] - 2026-10-17
 
 ### Added

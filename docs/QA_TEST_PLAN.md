@@ -54,14 +54,17 @@
 | **TC-DET-03** | Watchlist Toggle | Click "Add to Watchlist" button. | State toggles to "In Watchlist"; entry persists in Room database. |
 | **TC-DET-04** | Recommended Titles | Verify recommendations row at bottom of Detail screen. | Similar titles in primary genre appear; clicking opens their detail. |
 
-### 2.7. Playback & Error Recovery
+### 2.7. Native-Only Playback & Redirect Isolation
 | Test Case ID | Objective | Expected Result | Pass/Fail Criteria |
 |---|---|---|---|
-| **TC-PLY-01** | Native Media3 Playback | Launch direct video stream (MP4/HLS test stream). | Video plays smoothly; timeline scrubber works via D-pad Left/Right; Play/Pause toggles. |
-| **TC-PLY-02** | TV WebView Embed Playback | Launch playback with embed source (e.g., `VidSrc.to`, `AutoEmbed`). | Embed player renders in full-screen hardware-accelerated WebView. |
-| **TC-PLY-03** | Source Switching | Click "Switch Source" button in player overlay. | App rotates to next provider in `VIDEO_SOURCES` without crash. |
-| **TC-PLY-04** | External Player Intent | Select "Open in External Player". | Android system chooser or VLC opens with target stream URL. |
-| **TC-PLY-05** | Playback Progress Tracking | Watch media for 5 minutes, press Back, view "Continue Watching". | Continue Watching row displays title with exact 5-minute resume timestamp. |
+| **TC-PLY-01** | Native Media3 Playback | Launch verified HLS/MP4 native stream (Mux HLS, Tears of Steel, Big Buck Bunny). | Video decodes smoothly in ExoPlayer; 10-foot HUD operates; D-pad Left/Right seeks with visual feedback pill; Play/Pause toggles. |
+| **TC-PLY-02** | Unsupported Web Embed Rejection | Select any legacy web embed provider (e.g. `VidSrc.to`, `AutoEmbed`). | Source is immediately recognized as unsupported; player refuses to render a WebView; displays clean TV card: *"Native playback is unavailable for this source. Try another source."* |
+| **TC-PLY-03** | In-Player Native Source Switching | From error card or HUD, click "Switch to Compatible Native Source" or open Source Dialog. | Player transitions directly to a compatible HLS/MP4 stream without leaving the native player. |
+| **TC-PLY-04** | Redirect & Protocol Isolation | Attempt loading media stream redirecting to unencrypted HTTP, unknown schemes (`intent:`, `market:`), or exceeding 5 hops. | `SourceValidation` rejects request; error logged; player aborts dangerous redirect safely without launching external browser. |
+| **TC-PLY-05** | TV Series Episode Sequencing | Play TV series episode; navigate via "Next Episode" / "Previous Episode" buttons in HUD. | Episode index updates; new episode resolves and plays seamlessly; Continue Watching record updates. |
+| **TC-PLY-06** | Next Episode Auto-Prompt | Reach the final 30 seconds of a TV show episode. | Clean prompt overlay appears in lower right: *"Next Episode starting soon"*; clicking "Play Now" advances episode. |
+| **TC-PLY-07** | Playback Progress & Resume | Watch media for 5 minutes, press Back, relaunch from "Continue Watching". | Player resumes playback at the exact 5-minute saved timestamp from Room database. |
+
 
 ### 2.8. Persistence & Memory Stability
 | Test Case ID | Objective | Expected Result | Pass/Fail Criteria |

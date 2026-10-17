@@ -1,98 +1,88 @@
 # Playback Compatibility & Source Matrix: NowShowing TV
 
-## 1. Playback Architecture & Reality
+## 1. Native-Only Playback Architecture
 
-A critical discovery during the source code audit of `NowShowing-Stream` is that the 11 streaming providers configured in `js/config.js` (`VIDEO_SOURCES`) are **third-party embed providers** designed for web browsers (`<iframe>`). They do not provide stable, unauthenticated, raw `.mp4` or `.m3u8` video stream endpoints that can be fed directly to AndroidX Media3 / ExoPlayer without session tokens, CORS headers, or anti-hotlinking referrer checks.
+NowShowing TV has eliminated embedded browser (`WebView`) video players in favor of a **100% native media playback engine** powered exclusively by **AndroidX Media3 / ExoPlayer**.
 
-To address this on Android TV without compromising platform stability, NowShowing TV implements a **Three-Tier Hybrid Playback Engine**:
+Third-party web embed interfaces commonly expose television viewers to intrusive pop-ups, arbitrary redirects, deceptive advertisements, and unstable browser navigation. NowShowing TV enforces a strict native-first experience:
 
 ```
-                       ┌─────────────────────────┐
-                       │ Playback Request (Title)│
-                       └────────────┬────────────┘
+[Select Movie/Episode] ──▶ [MediaSourceResolver] ──▶ [SourceValidation] ──▶ [ExoPlayer (Native TV)]
                                     │
-                                    ▼
-                       ┌─────────────────────────┐
-                       │ Preferred Source Lookup │
-                       └────────────┬────────────┘
+                                    ├── If Native Direct Stream (HLS/DASH/MP4) ──▶ Native TV Playback
                                     │
-                  ┌─────────────────┴─────────────────┐
-                  ▼                                   ▼
-        [Direct Media Stream]               [Web Embed Provider]
-                  │                                   │
-                  ▼                                   ▼
-        ┌───────────────────┐               ┌───────────────────┐
-        │ Tier 1: Media3    │               │ Tier 2: TV WebView│
-        │ ExoPlayer         │               │ Hardware Accel    │
-        │ (HLS/DASH/MP4)    │               │ TV Remote D-Pad   │
-        └───────────────────┘               └─────────┬─────────┘
-                  │                                   │
-                  │              Stream Error         │
-                  └─────────────────┬─────────────────┘
-                                    ▼
-                       ┌─────────────────────────┐
-                       │ Tier 3: External Player │
-                       │ (VLC / Just Player)     │
-                       └─────────────────────────┘
+                                    └── If Legacy Web Embed (iframe) ───────────▶ [Incompatible Error Screen]
+                                                                                   "Native playback unavailable.
+                                                                                    Try another source."
 ```
 
-## 2. Playback Tiers Detailed
+### Architectural Principles:
+1. **Exclusive Native Engine**: Media3 / ExoPlayer is the sole in-app playback surface. No `WebView`, no HTML, and no JavaScript execution occurs in the player.
+2. **Deterministic Resolution**: `MediaSourceResolver` evaluates candidate providers before playback. If a source only provides an unsupported web embed, it is immediately rejected without exposing the user to the web page.
+3. **Redirect & Destination Isolation**: Network requests must use HTTPS (with explicit local-network IP exemptions for home NAS/DLNA media servers). Disallowed URI schemes (`intent:`, `market:`, `javascript:`, `file:`) and redirects to advertising or tracking hosts are blocked.
+4. **TV-Native Ergonomics**: Complete D-pad remote control (Up/Down HUD toggle, Left/Right 10s seek with visual feedback pills, Center/OK Play/Pause, Next/Previous episode navigation, and a 10-foot source switcher dialog).
 
-### Tier 1: AndroidX Media3 / ExoPlayer (Native)
-- **Target**: Direct HTTP/HTTPS streams, HLS playlists (`.m3u8`), and MPEG-DASH (`.mpd`).
-- **Capabilities**:
-  - Full hardware decoding (MediaCodec).
-  - True timeline tracking: records playback millisecond position in local database (`ContinueWatchingEntity`).
-  - Automatic completion threshold: marks content completed at 90% duration.
-  - Native audio track, subtitle track, and quality track selection.
-  - Native TV playback controls (Play/Pause, 10s skip, timeline scrub).
+---
 
-### Tier 2: TV-Optimized WebView Player (Embed Fallback)
-- **Target**: Web-based embed providers (`vidsrc`, `2embed`, `autoembed`, etc.).
-- **Capabilities**:
-  - Full-screen hardware accelerated `WebView`.
-  - Configured with Chrome TV / Modern Mobile User-Agent to request HTML5 responsive video players.
-  - Enabled features: `setMediaPlaybackRequiresUserGesture(false)`, WebRTC, hardware acceleration, DOM storage.
-  - WebChromeClient handles full-screen mode transitions (`onShowCustomView`).
-  - D-pad click emulation: maps remote `OK` button to touch/click events on focused video controls.
-  - Blank player detection: monitors WebView loading progress; triggers a non-intrusive HUD if the source stays blank or fails to render within 10 seconds.
+## 2. Source Classification & Audit Matrix
 
-### Tier 3: External Video Player Intent (Handoff)
-- **Target**: Users with specialized media player apps installed on Android TV (e.g. VLC for Android, Just Player, Nova Video Player, MX Player).
-- **Action**: Launches `Intent(Intent.ACTION_VIEW)` with the stream or web URL.
-- **Benefit**: Ensures uninterrupted viewing even if an embed provider has complex WebRTC or ad-blocking restrictions.
+All 15 configured sources in NowShowing TV are classified into four distinct compatibility tiers:
 
-## 3. Streaming Source Evaluation Matrix
+1. **Native-Playable**: Directly exposes an authorized, standards-compliant HLS (`.m3u8`), MPEG-DASH (`.mpd`), or progressive MP4 stream.
+2. **Requires Authorized Direct-Media Endpoint**: Configurable source requiring an authorized direct stream URL or user-configured endpoint.
+3. **Unsupported Web-Only Embed**: Legacy third-party iframe embed page; strictly incompatible with native-only playback.
+4. **Unavailable**: Offline, broken, or unresponsive endpoint.
 
-The 11 providers ported from `js/config.js` have been audited for Android TV compatibility:
+| Provider / Source | Type | Endpoint Format | Native Media3 | TV Remote D-Pad | Classification Status | Technical Assessment |
+|---|---|:---:|:---:|:---:|:---:|---|
+| **Native HLS (Mux Stream)** | Native Stream | HLS (`.m3u8`) | ✅ 100% Native | ✅ Full D-Pad | **Native-Playable** | Multi-bitrate adaptive HLS stream with subtitle tracks. Hardware accelerated. |
+| **Tears of Steel (HLS Demo)** | Sample Stream | HLS (`.m3u8`) | ✅ 100% Native | ✅ Full D-Pad | **Native-Playable** | Unified Streaming certified 1080p HLS stream. Verified ExoPlayer decoding. |
+| **Big Buck Bunny (MP4)** | Sample Stream | Progressive MP4 | ✅ 100% Native | ✅ Full D-Pad | **Native-Playable** | Google TV reference progressive MP4 media stream. Immediate start, seekable. |
+| **Sintel (MP4)** | Sample Stream | Progressive MP4 | ✅ 100% Native | ✅ Full D-Pad | **Native-Playable** | Blender Foundation high-definition progressive MP4 media stream. |
+| **Custom Local / NAS Stream** | Custom Stream | HLS / DASH / MP4 | ✅ 100% Native | ✅ Full D-Pad | **Requires Direct Endpoint** | User or local network stream (e.g. `http://192.168.1.x:8080/movie.mp4`). |
+| **VidSrc.to** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Obfuscated HTML player; no authorized direct HLS/MP4 URL provided. Rebuffed by resolver. |
+| **AutoEmbed** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Responsive web player wrapper; no direct media endpoint. Rebuffed by resolver. |
+| **2Embed.cc** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Third-party web embed; requires browser DOM/JS environment. Rebuffed by resolver. |
+| **2Embed.stream** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Mirror of 2Embed; web iframe only. Rebuffed by resolver. |
+| **VidSrc.icu** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Third-party web embed; no raw media stream available. Rebuffed by resolver. |
+| **VidSrc.xyz** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Third-party web embed; no raw media stream available. Rebuffed by resolver. |
+| **VidSrc.me** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Strict anti-hotlinking referrer checks; no direct media stream. Rebuffed by resolver. |
+| **MoviesAPI** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Web embed aggregator; no direct media stream. Rebuffed by resolver. |
+| **MultiEmbed** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Multi-server web embed container. Rebuffed by resolver. |
+| **EmbedSu** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Third-party web embed; no raw media stream available. Rebuffed by resolver. |
+| **VidSrc.mov** | Legacy Web Embed | HTML / iframe | ❌ Incompatible | ❌ N/A | **Unsupported Web-Only Embed** | Third-party web embed; no raw media stream available. Rebuffed by resolver. |
 
-| Provider Name | Base Movie URL | Series URL Structure | Native Media3 | TV WebView | External Intent | Notes & Status |
-|---|---|---|:---:|:---:|:---:|---|
-| **VidSrc.to** | `https://vidsrc.to/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | High uptime; responsive iframe player; requires standard browser headers. |
-| **AutoEmbed** | `https://autoembed.co/movie/imdb/` | `.../tv/imdb/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Fast loading; clean player interface; works well in Android WebView. |
-| **2Embed.cc** | `https://www.2embed.cc/embed/` | `.../embedtv/{id}&s={s}&e={e}` | ❌ | ✅ Supported | ✅ Supported | Classic aggregator; embeds HTML5 player. |
-| **2Embed.stream** | `https://www.2embed.stream/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Alternative mirror for 2Embed. |
-| **VidSrc.icu** | `https://vidsrc.icu/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Mirror of VidSrc. |
-| **VidSrc.xyz** | `https://vidsrc.xyz/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Stable embed endpoint. |
-| **VidSrc.me** | `https://v2.vidsrc.me/embed/` | `.../embed/{id}/{s}-{e}/` | ❌ | ⚠️ Mixed | ✅ Supported | Strict referrer verification; requires custom referrer header. |
-| **MoviesAPI** | `https://moviesapi.club/movie/` | `.../tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Responsive player. |
-| **MultiEmbed** | `https://multiembed.mov/?video_id=` | `.../?video_id={id}&s={s}&e={e}` | ❌ | ✅ Supported | ✅ Supported | Multi-stream selector built-in. |
-| **EmbedSu** | `https://embed.su/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Fast embed delivery. |
-| **VidSrc.mov** | `https://vidsrc.mov/embed/movie/` | `.../embed/tv/{id}/{s}/{e}` | ❌ | ✅ Supported | ✅ Supported | Additional fallback mirror. |
+---
 
-## 4. Source Switching & Recovery Protocol
-1. **Initial Selection**: The app automatically selects the user's preferred source (defaults to `VidSrc.to` or `AutoEmbed`).
-2. **One-Click Rotation**: If a source fails to load, produces an error, or remains blank for more than 10 seconds:
-   - A remote-accessible overlay banner prompts: *"Source not loading? Press OK to switch to AutoEmbed (or Next Source)"*.
-   - Pressing `OK` automatically swaps the stream URL to the next available source in `VIDEO_SOURCES` without exiting the player.
-3. **Memory**: When a user manually switches sources and playback succeeds, that source is recorded as the new preferred source in `SharedPreferences`.
+## 3. Resolution & Failure Protocol
 
-## 5. Privacy Shields & Source Impact
-NowShowing TV embeds a native content-filtering layer (`ProtectedWebViewClient`) into all web player sessions:
-- **Advertising & Tracker Blocking**: Blocked at network request level; returning empty 200 OK responses prevents embedded player scripts from stalling.
-- **Pop-up & Redirection Suppression**: Aggressive ad networks attempting to spawn pop-unders or hijack WebView URLs via `intent://` or unauthorized redirects are blocked.
-- **Whitelisted Video Streams**: Direct media segments (`.m3u8`, `.ts`, `.mpd`, `.m4s`, `.mp4`) and subtitles are permanently exempted from blocking rules.
-- **Source-Specific Override**: If a third-party source utilizes anti-adblock mechanisms or fails to load under active filtering, users can toggle shields off for that specific provider using the TV HUD or the 10-second recovery prompt (*"Disable Shields for this source"*).
+When a user initiates playback for any movie or TV episode:
 
-## 6. Compliance & Security Notice
-NowShowing TV does not host, index, or proxy video streams. It acts strictly as a discovery and client-side playback coordinator. No DRM mechanisms are bypassed, and no paywalls are skirted.
+1. **Resolution Step**: `MediaSourceResolver.resolve(...)` inspects the selected provider.
+2. **Incompatible Web Embed Handling**:
+   - If the user selects any of the 11 legacy embed sources, the resolver rejects the request without opening a browser or rendering HTML.
+   - The UI presents a clean, remote-navigable TV dialog:
+     > **⚠️ Native Playback Unavailable**  
+     > *Native playback is unavailable for this source (VidSrc.to). It is an unsupported web embed. Try another source.*
+   - Two prominent, D-pad focusable action buttons are provided:
+     - **⚡ Switch to Compatible Native Source**: Instantly switches to the next verified native HLS/MP4 stream.
+     - **Choose from Source List**: Opens the full source drawer with compatibility badges.
+     - **Back to Details**: Safely returns focus to the title details screen.
+3. **No Automatic Browser Fallback**: Under no circumstance does the application fall back to launching an external web browser or rendering a WebView.
+
+---
+
+## 4. Redirect & Protocol Isolation
+
+Native playback provides defense-in-depth against malicious network behavior:
+
+- **HTTPS Requirement**: All external streaming endpoints must use `https://`. Unencrypted `http://` is strictly prohibited unless directed to a RFC-1918 private network host (`192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`, or `localhost/127.0.0.1`) for local media streaming.
+- **Redirect Loop Protection**: Network redirect chains are capped at 5 hops. Any chain exceeding 5 hops is terminated with an error.
+- **Disallowed Schemes**: Schemes like `intent:`, `market:`, `javascript:`, and `data:` are rejected by `SourceValidation`.
+- **Ad & Tracker Host Filtering**: Media request redirects are evaluated against `ContentBlockEngine` filter rules to ensure that a media server does not steer the player toward an advertising or tracking domain.
+
+---
+
+## 5. Security & Terms Compliance
+
+NowShowing TV acts strictly as a metadata viewer and native client media player. It does not circumvent DRM, bypass CAPTCHAs, hijack private tokens, or scrape protected endpoints. Web-only providers that refuse direct media access are classified honestly as unsupported rather than bypassed through unauthorized means.

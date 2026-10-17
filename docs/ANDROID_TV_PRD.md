@@ -54,19 +54,26 @@ Direct port of the web application's recommendation engine:
   - Remembers last selected season and episode.
 - **Recommended Titles Row**: Dynamically queries similar titles based on primary genre.
 
-### 3.6. Playback Architecture
-- **Tier 1 — Native Player (AndroidX Media3 / ExoPlayer)**:
-  - Plays direct HLS (.m3u8), DASH (.mpd), and MP4 streams.
-  - Remote media controls: Play/Pause, 10s Skip Forward/Backward, Seek Bar, Audio Track & Subtitle selector.
-  - Tracks true playback position and marks title as completed upon reaching 90% runtime.
-- **Tier 2 — TV WebView Embed Player**:
-  - For third-party iframe embed providers (VidSrc, 2Embed, AutoEmbed, MultiEmbed, etc.).
-  - Custom TV-optimized WebView: handles mixed content, WebRTC/media autoplay, custom user-agent, full D-pad click pass-through, hardware acceleration, and back-button capture.
-- **Tier 3 — External App Intent Handoff**:
-  - Option to open the streaming URL in external installed video players (e.g. VLC, Just Player, or web browser).
-- **Source Switcher**:
-  - Remembers user's last working source globally and per title.
-  - Manual source selector dropdown/dialog allowing one-click retry with next source if a stream fails or displays blank.
+### 3.6. Mandatory Native-Only Playback Architecture
+- **Exclusive Native Engine (AndroidX Media3 / ExoPlayer)**:
+  - All video playback takes place exclusively inside the native Media3 player.
+  - Zero WebViews, zero HTML/DOM rendering, and zero browser pop-ups in the playback flow.
+  - Plays standards-compliant HLS (.m3u8), DASH (.mpd), and progressive MP4 media streams.
+  - Full remote control: Play/Pause, 10s Skip Forward/Backward (with visual feedback), Scrubber timeline, Audio & Subtitle track selector.
+  - Tracks true playback progress in milliseconds to local Room database for resume watching.
+- **Dedicated Media Source Resolution Layer**:
+  - `MediaSourceResolver` evaluates requested sources prior to playback.
+  - Supported direct media endpoints proceed to native playback.
+  - Legacy iframe web embeds (e.g. VidSrc, AutoEmbed) are classified as incompatible and rejected without exposing the user to third-party web pages.
+- **Safe Failure & Source Switching**:
+  - Clear, user-friendly TV error card when an incompatible web source is selected: *"Native playback is unavailable for this source. Try another source."*
+  - Remote-friendly action buttons to switch to a compatible native stream or select from the source dialog.
+- **Redirect & Protocol Isolation**:
+  - Enforces HTTPS for all remote media streams (allowing RFC-1918 private IPs for local home media servers).
+  - Rejects arbitrary external intent launches, app store redirects, and URL scheme hijacking.
+- **Series Playback Progression**:
+  - Previous and Next Episode buttons in the TV player HUD.
+  - Unobtrusive auto-next episode suggestion banner in the lower-right during the final 30 seconds of an episode.
 
 ### 3.7. Persistence & Library
 - **Watchlist**: Persisted in Room database. Direct remote access screen with one-click remove.

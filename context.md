@@ -11,16 +11,18 @@
   - Search with on-screen keyboard & type filtering
   - Detailed metadata (plot, cast, director, rating, runtime, genre tags)
   - Season & episode picker for TV shows
-  - Multi-tier playback engine: Native Media3 (HLS/DASH/MP4), Embedded WebView fallback, and External App handoff (Intents)
+  - Exclusive Native Media3 Playback: Standards-compliant HLS/DASH/MP4 streams with full 10-foot remote controls, timeline scrubber, and series sequencing
   - Local persistence for Watchlist, Continue Watching (with genuine playback progress), preferred source, and cached metadata
-  - Native Brave-inspired Privacy Shields: Built-in ad & tracker blocking, pop-up suppression, redirect prevention, and local statistics for WebView playback
+  - Dedicated Media Source Resolution & Redirect Isolation: Evaluates providers, safely rejects unsupported web embeds, enforces HTTPS, and limits redirect chains
+  - Native Brave-inspired Privacy Shields: Built-in ad & tracker blocking, pop-up suppression, and local statistics
 
 ## 2. Technology Stack
 - **Language**: Kotlin 2.0+
 - **Platform**: Android TV / Google TV (Min SDK 26 / Android 8.0 Oreo, Target SDK 35 / Android 15)
 - **UI Framework**: Android TV UI with Jetpack Compose for TV & TV Material3 / Leanback architecture
-- **Media Playback**: AndroidX Media3 (ExoPlayer 1.4+) for HLS/DASH/MP4, custom TV WebView for embed providers, Android Intent handoff
-- **Privacy & Content Blocking**: Native network interception (`WebViewClient.shouldInterceptRequest`), Adblock Plus rule matcher, compact bundled filter lists (EasyList/EasyPrivacy), pop-up & redirect interceptors, local statistics
+- **Media Playback**: AndroidX Media3 (ExoPlayer 1.4+) exclusively; zero WebViews in playback
+- **Resolution & Security**: `MediaSourceResolver`, `SourceValidation`, protocol enforcement (HTTPS + private network allowance), redirect depth validation
+- **Privacy & Content Blocking**: Native network interception, Adblock Plus rule matcher, compact bundled filter lists, pop-up & redirect interceptors, local statistics
 - **Networking & Serialization**: OkHttp 4 / Retrofit 2 + Kotlinx Serialization / Gson
 - **Image Loading**: Coil 2.x with aggressive bitmap downsampling and memory/disk cache
 - **Persistence**: Room Database (SQLite) / SharedPreferences for Watchlist, Continue Watching, search history, and metadata cache
@@ -29,7 +31,7 @@
 ## 3. Constraints & Principles
 - **10-foot remote navigation**: D-pad only (Up, Down, Left, Right, Center/OK, Back, Play/Pause). Zero pointer or touch dependency.
 - **Predictable focus**: Explicit focus management, visible focus indicators, focus restoration on back navigation, horizontal scroll position retention.
-- **Performance on low-end TV hardware**: Lazy loading of carousels/grids, memory-bounded image caches, no heavy background autoplay. Sub-millisecond rule evaluation in content blocking.
-- **Playback reality**: Embedded third-party streaming providers are not guaranteed direct mp4/hls streams; graceful fallback to TV-optimized WebView and external player intents.
+- **Performance on low-end TV hardware**: Lazy loading of carousels/grids, memory-bounded image caches, no heavy background autoplay. Sub-millisecond rule evaluation.
+- **Mandatory Native Playback**: All playable media must open directly in the native TV player. No WebView inside playback. If a provider only exposes a web embed, it is classified as incompatible with clear user guidance to select a native stream.
 - **Legitimate media protection**: Never block video fragments (.m3u8, .ts, .mpd, .m4s, .mp4), subtitles, or authorized playback scripts.
 - **Source of truth**: Web codebase in root; Android project located in `android-tv/` without breaking the web app.

@@ -79,34 +79,36 @@ flowchart TD
   - `MetadataCacheEntity`: Stores request key, JSON payload, and expiration timestamp.
   - `SearchHistoryEntity`: Stores query string and search timestamp.
 
-### 2.4. Playback Architecture
+### 2.4. Native-Only Playback Architecture
 
 ```mermaid
-flowchart LR
-    SourceSelect["Source Selected"] --> CheckType{"Source Type & URL"}
-    CheckType -->|Direct Stream (HLS/DASH/MP4)| Media3["AndroidX Media3\n(ExoPlayer)"]
-    CheckType -->|Web Embed Provider| TVWebView["TV WebView Player\n(Hardware Accelerated)"]
-    CheckType -->|External Player Option| ExternalIntent["Android Intent\n(VLC / JustPlayer)"]
+flowchart TD
+    Select["Movie / Episode Selected"] --> Resolver["MediaSourceResolver\n(Protocol & Format Check)"]
     
-    Media3 --> Progress["Track Real Time & Progress (Room)"]
-    TVWebView --> Fallback["On Failure: Prompt Switch Source"]
-    Media3 --> Fallback
+    Resolver --> Check{"Source Compatible?"}
+    
+    Check -->|Native Stream (HLS/DASH/MP4)| Validator["SourceValidation\n(HTTPS, Hop Limit, Non-Ad Check)"]
+    Check -->|Unsupported Web Embed| Incompatible["Incompatible Source Screen\n'Native playback unavailable.\nTry another source.'"]
+    
+    Validator --> Media3["AndroidX Media3 (ExoPlayer)\n(100% Native TV Surface)"]
+    Incompatible --> Switcher["D-Pad Source Switcher\n(Select Compatible Native Stream)"]
+    Switcher --> Resolver
+    
+    Media3 --> Controls["10-Foot Remote D-Pad HUD\n(Seek ±10s, Timeline, Episodes)"]
+    Media3 --> Progress["Persist Progress & Resume (Room DB)"]
 ```
 
-1. **Native Media3**:
-   - Primary player for direct media streams.
-   - Provides native TV playback controls: timeline scrubber, Play/Pause, 10s skip, audio/subtitle selection, and error recovery.
-   - Emits playback milestones to update `ContinueWatchingEntity`. Marks completion at 90% duration.
-2. **TV-Optimized WebView with Privacy Shields**:
-   - Custom `ProtectedWebViewClient` and `PopupProtection` (WebChromeClient) with hardware acceleration enabled.
-   - Built-in Adblock Plus (ABP) syntax rule evaluator (`ContentBlockEngine`) with sub-millisecond LRU decision caching.
-   - Network interception in `shouldInterceptRequest`: blocks advertising/tracker requests with empty 200 responses.
-   - Strict media bypass: video segments (`.m3u8`, `.ts`, `.mpd`, `.m4s`, `.mp4`) and subtitles (`.vtt`, `.srt`) are permanently whitelisted.
-   - Pop-up and redirect suppression in `shouldOverrideUrlLoading` and `onCreateWindow`: blocks rogue app intents (`intent://`, `market://`) and unexpected window creation.
-   - Cookie privacy: restricts third-party tracking cookies via Android `CookieManager`.
-   - Source exceptions: allows per-source overrides when an authorized player requires specific scripts.
-3. **External Intent**:
-   - Fires standard `ACTION_VIEW` intent with MIME type `video/*` allowing users to stream via VLC, Kodi, or external TV video players if preferred.
+1. **Mandatory Native Player (AndroidX Media3 / ExoPlayer)**:
+   - Primary and exclusive in-app playback engine. Zero WebViews, zero HTML/DOM execution, and zero browser pop-ups.
+   - Decodes hardware-accelerated HLS (`.m3u8`), MPEG-DASH (`.mpd`), and progressive MP4 streams.
+   - Provides native TV controls: timeline scrubber, Play/Pause, 10s skip (with on-screen feedback pill), Next/Previous episode sequencing, and audio/subtitle selection.
+   - Emits playback milestones to update `ContinueWatchingEntity`.
+2. **Media Source Resolution Layer (`com.nowshowing.tv.playback`)**:
+   - `MediaSourceResolver`: Validates configured providers. Direct streams proceed to playback; legacy iframe web embeds (e.g. VidSrc, AutoEmbed) are safely rejected before any network content is rendered.
+   - `SourceValidation`: Enforces HTTPS protocols (allowing RFC-1918 private IPs for local media servers), limits redirect depth to 5 hops, and ensures destinations do not resolve to known advertising/tracking domains.
+   - `PlaybackCoordinator`: Orchestrates fallback to compatible native streams, next/previous episode calculations, and 30-second next-episode prompts.
+3. **Safe Incompatible State Handling**:
+   - When a user chooses an unsupported web embed or an unplayable source, the app displays a focused TV error card with one-click D-pad actions to switch to a compatible native stream without leaving the player experience.
 
 ## 3. Privacy & Content Blocking Subsystem
 

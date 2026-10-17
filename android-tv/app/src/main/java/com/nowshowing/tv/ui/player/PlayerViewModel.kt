@@ -6,8 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.nowshowing.tv.data.repository.MediaRepository
 import com.nowshowing.tv.domain.source.SourceRegistry
 import com.nowshowing.tv.domain.source.VideoSource
-import com.nowshowing.tv.privacy.BlockType
-import com.nowshowing.tv.privacy.ProtectionPreferences
+import com.nowshowing.tv.playback.PlaybackCoordinator
+import com.nowshowing.tv.playback.PlayableSource
+import com.nowshowing.tv.playback.ResolutionResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,131 +22,187 @@ data class PlayerUiState(
     val type: String = "movie",
     val season: Int = 1,
     val episode: Int = 1,
-    val currentSource: VideoSource = SourceRegistry.SOURCES.first(),
-    val streamUrl: String = "",
-    val isDirectMedia: Boolean = false,
-    val isProtectionExempt: Boolean = false,
-    val sessionBlockedCount: Int = 0,
-    val showControls: Boolean = true,
-    val showBlankRecoveryHint: Boolean = false,
+    val currentSource: VideoSource = SourceRegistry.NATIVE_SOURCES.first(),
+    val playableSource: PlayableSource? = null,
+    val isLoading: Boolean = true,
     val isPlaying: Boolean = true,
+    val isBuffering: Boolean = false,
+    val isIncompatibleSource: Boolean = false,
+    val errorMessage: String? = null,
     val currentPositionMs: Long = 0L,
-    val durationMs: Long = 0L
+    val durationMs: Long = 0L,
+    val seekFeedbackText: String? = null,
+    val showNextEpisodePrompt: Boolean = false,
+    val showSourceSelector: Boolean = false,
+    val showControls: Boolean = true
 )
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = MediaRepository(application)
-    private val protectionPrefs = ProtectionPreferences(application)
+    private val coordinator = PlaybackCoordinator()
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
     fun initialize(imdbId: String, season: Int, episode: Int, type: String) {
         viewModelScope.launch {
-            val prefSource = SourceRegistry.getPreferredSource(getApplication())
+            _uiState.value = _uiState.value.copy(
+                imdbId = imdbId,
+                season = season,
+                episode = episode,
+                type = type,
+                isLoading = true,
+                errorMessage = null,
+                isIncompatibleSource = false
+            )
+
             val detail = repository.getDetails(imdbId)
             val titleName = detail?.title ?: "NowShowing"
             val posterUrl = detail?.poster ?: ""
             val yearVal = detail?.year ?: ""
 
-            val url = SourceRegistry.buildVideoUrl(
-                source = prefSource,
-                imdbId = imdbId,
-                season = season,
-                episode = episode,
-                isSeries = type == "series"
-            ) ?: ""
+            // Retrieve saved playback position from continue watching if available
+            val continueList = repository.getContinueWatching()
+            val savedEntry = continueList.firstOrNull { it.imdbID == imdbId }
+            val resumeMs = savedEntry?.positionMs ?: 0L
 
-            val isDirect = url.endsWith(".mp4") || url.endsWith(".m3u8") || url.endsWith(".mpd")
-            val isExempt = protectionPrefs.isSourceExempt(prefSource.name)
+            val preferredSource = SourceRegistry.getPreferredSource(getApplication())
 
-            _uiState.value = PlayerUiState(
-                imdbId = imdbId,
+            _uiState.value = _uiState.value.copy(
                 title = titleName,
                 poster = posterUrl,
                 year = yearVal,
-                type = type,
-                season = season,
-                episode = episode,
-                currentSource = prefSource,
-                streamUrl = url,
-                isDirectMedia = isDirect,
-                isProtectionExempt = isExempt
+                currentSource = preferredSource,
+                currentPositionMs = resumeMs
             )
 
-            // Register playback initiation in Continue Watching
-            repository.updateContinueWatching(
-                imdbId = imdbId,
-                title = titleName,
-                poster = posterUrl,
-                year = yearVal,
-                type = type,
-                season = season,
-                episode = episode,
-                positionMs = 0L,
-                durationMs = 0L
-            )
+            resolveAndLoad(preferredSource, resumeMs)
         }
     }
 
-    fun switchNextSource() {
-        val next = SourceRegistry.getNextSource(_uiState.value.currentSource)
-        setSource(next)
+    private fun resolveAndLoad(source: VideoSource, resumeMs: Long = 0L) {
+        val s = _uiState.value
+        val result = coordinator.resolvePlayback(
+            source = source,
+            imdbId = s.imdbId,
+            title = s.title,
+            season = s.season,
+            episode = s.episode,
+            isSeries = s.type == "series",
+            resumePositionMs = resumeMs,
+            autoFallback = false
+        )
+
+        when (result) {
+            is ResolutionResult.Success -> {
+                _uiState.value = _uiState.value.copy(
+                    currentSource = source,
+                    playableSource = result.playableSource,
+                    isLoading = false,
+                    isIncompatibleSource = false,
+                    errorMessage = null,
+                    showSourceSelector = false
+                )
+
+                // Update database continue watching record
+                viewModelScope.launch {
+                    repository.updateContinueWatching(
+                        imdbId = s.imdbId,
+                        title = s.title,
+                        poster = s.poster,
+                        year = s.year,
+                        type = s.type,
+                        season = s.season,
+                        episode = s.episode,
+                        positionMs = resumeMs,
+                        durationMs = 0L
+                    )
+                }
+            }
+            is ResolutionResult.IncompatibleSource -> {
+                _uiState.value = _uiState.value.copy(
+                    currentSource = source,
+                    playableSource = null,
+                    isLoading = false,
+                    isIncompatibleSource = true,
+                    errorMessage = "Native playback is unavailable for this source (${source.name}). Try another source.",
+                    showSourceSelector = false
+                )
+            }
+            is ResolutionResult.Error -> {
+                _uiState.value = _uiState.value.copy(
+                    currentSource = source,
+                    playableSource = null,
+                    isLoading = false,
+                    isIncompatibleSource = false,
+                    errorMessage = result.message,
+                    showSourceSelector = false
+                )
+            }
+        }
     }
 
-    fun setSource(source: VideoSource) {
+    fun selectSource(source: VideoSource) {
         SourceRegistry.setPreferredSource(getApplication(), source.name)
-        val url = SourceRegistry.buildVideoUrl(
-            source = source,
-            imdbId = _uiState.value.imdbId,
-            season = _uiState.value.season,
-            episode = _uiState.value.episode,
-            isSeries = _uiState.value.type == "series"
-        ) ?: ""
-
-        val isDirect = url.endsWith(".mp4") || url.endsWith(".m3u8") || url.endsWith(".mpd")
-        val isExempt = protectionPrefs.isSourceExempt(source.name)
-
         _uiState.value = _uiState.value.copy(
             currentSource = source,
-            streamUrl = url,
-            isDirectMedia = isDirect,
-            isProtectionExempt = isExempt,
-            sessionBlockedCount = 0,
-            showBlankRecoveryHint = false
+            isLoading = true,
+            errorMessage = null,
+            isIncompatibleSource = false,
+            showSourceSelector = false
         )
+        resolveAndLoad(source, _uiState.value.currentPositionMs)
     }
 
-    fun toggleSourceProtection() {
-        val srcName = _uiState.value.currentSource.name
-        val nowExempt = !_uiState.value.isProtectionExempt
-        protectionPrefs.setSourceExempt(srcName, nowExempt)
-
-        _uiState.value = _uiState.value.copy(
-            isProtectionExempt = nowExempt,
-            showBlankRecoveryHint = false
-        )
-
-        // Trigger reload with new policy
-        val currentUrl = _uiState.value.streamUrl
-        _uiState.value = _uiState.value.copy(streamUrl = "")
-        _uiState.value = _uiState.value.copy(streamUrl = currentUrl)
+    fun switchToNextCompatibleSource() {
+        val next = SourceRegistry.getNextCompatibleSource(_uiState.value.currentSource)
+        selectSource(next)
     }
 
-    fun onItemBlocked(type: BlockType, url: String) {
+    fun retry() {
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        resolveAndLoad(_uiState.value.currentSource, _uiState.value.currentPositionMs)
+    }
+
+    fun playNextEpisode() {
+        val s = _uiState.value
+        val nextEp = coordinator.getNextEpisode(s.season, s.episode)
         _uiState.value = _uiState.value.copy(
-            sessionBlockedCount = _uiState.value.sessionBlockedCount + 1
+            season = nextEp.season,
+            episode = nextEp.episode,
+            currentPositionMs = 0L,
+            durationMs = 0L,
+            showNextEpisodePrompt = false,
+            isLoading = true
         )
+        resolveAndLoad(_uiState.value.currentSource, 0L)
+    }
+
+    fun playPreviousEpisode() {
+        val s = _uiState.value
+        val prevEp = coordinator.getPreviousEpisode(s.season, s.episode) ?: return
+        _uiState.value = _uiState.value.copy(
+            season = prevEp.season,
+            episode = prevEp.episode,
+            currentPositionMs = 0L,
+            durationMs = 0L,
+            isLoading = true
+        )
+        resolveAndLoad(_uiState.value.currentSource, 0L)
     }
 
     fun updateProgress(positionMs: Long, durationMs: Long) {
-        _uiState.value = _uiState.value.copy(
+        val s = _uiState.value
+        val shouldPrompt = coordinator.isEligibleForNextEpisodePrompt(positionMs, durationMs) && s.type == "series"
+
+        _uiState.value = s.copy(
             currentPositionMs = positionMs,
-            durationMs = durationMs
+            durationMs = durationMs,
+            showNextEpisodePrompt = shouldPrompt
         )
+
         viewModelScope.launch {
-            val s = _uiState.value
             repository.updateContinueWatching(
                 imdbId = s.imdbId,
                 title = s.title,
@@ -160,11 +217,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun triggerBlankRecovery() {
-        _uiState.value = _uiState.value.copy(showBlankRecoveryHint = true)
+    fun setBuffering(isBuffering: Boolean) {
+        _uiState.value = _uiState.value.copy(isBuffering = isBuffering)
     }
 
-    fun dismissRecoveryHint() {
-        _uiState.value = _uiState.value.copy(showBlankRecoveryHint = false)
+    fun setPlaying(isPlaying: Boolean) {
+        _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
+    }
+
+    fun setSeekFeedback(text: String?) {
+        _uiState.value = _uiState.value.copy(seekFeedbackText = text)
+    }
+
+    fun openSourceSelector() {
+        _uiState.value = _uiState.value.copy(showSourceSelector = true)
+    }
+
+    fun closeSourceSelector() {
+        _uiState.value = _uiState.value.copy(showSourceSelector = false)
+    }
+
+    fun dismissNextEpisodePrompt() {
+        _uiState.value = _uiState.value.copy(showNextEpisodePrompt = false)
     }
 }
